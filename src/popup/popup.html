@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stop The Sequence</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 380px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1B5E20;
+      color: #F5F5DC;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0D3B0E 0%, #1B5E20 50%, #0D3B0E 100%);
+      color: #D4AF37;
+      padding: 18px 20px;
+      text-align: center;
+      border-bottom: 3px solid #D4AF37;
+      position: relative;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #C41E3A, #D4AF37, #1565C0, #D4AF37, #C41E3A);
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    }
+
+    .header p {
+      font-size: 11px;
+      color: #F5F5DC;
+      opacity: 0.85;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .content {
+      padding: 16px 20px;
+      background: #2E7D32;
+      background-image: 
+        radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%);
+    }
+
+    .field-group {
+      margin-bottom: 12px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #D4AF37;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .field-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #4CAF50;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #1B5E20;
+      color: #F5F5DC;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field-group input::placeholder {
+      color: transparent;
+    }
+
+    .field-group input:focus {
+      outline: none;
+      border-color: #D4AF37;
+      box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .row .field-group {
+      flex: 1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #D4AF37;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .btn-fill {
+      background: #C41E3A;
+      color: #F5F5DC;
+      border-color: #D4AF37;
+    }
+
+    .btn-fill:hover {
+      background: #A01830;
+    }
+
+    .btn-save {
+      background: #1565C0;
+      color: #F5F5DC;
+      border-color: #D4AF37;
+    }
+
+    .btn-save:hover {
+      background: #0D47A1;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 13px;
+      min-height: 20px;
+      color: #D4AF37;
+      font-weight: 600;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 8px;
+      font-size: 10px;
+      color: #4CAF50;
+      background: #0D3B0E;
+      border-top: 2px solid #D4AF37;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Stop The Sequence</h1>
+    <p>Auto-fill job applications instantly</p>
+  </div>
+
+  <div class="content">
+    <div class="row">
+      <div class="field-group">
+        <label>First Name</label>
+        <input type="text" id="firstName">
+      </div>
+      <div class="field-group">
+        <label>Last Name</label>
+        <input type="text" id="lastName">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>Email</label>
+      <input type="email" id="email">
+    </div>
+
+    <div class="field-group">
+      <label>Phone</label>
+      <input type="tel" id="phone">
+    </div>
+
+    <div class="row">
+      <div class="field-group">
+        <label>City</label>
+        <input type="text" id="city">
+      </div>
+      <div class="field-group">
+        <label>State</label>
+        <input type="text" id="state">
+      </div>
+      <div class="field-group">
+        <label>Zip Code</label>
+        <input type="text" id="zipCode">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label>LinkedIn URL</label>
+      <input type="url" id="linkedinUrl">
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-save" id="saveBtn">Save Profile</button>
+      <button class="btn btn-fill" id="fillBtn">♠ Auto-Fill</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="footer">
+    ♠ ♥ ♦ ♣ &mdash; Play your cards right &mdash; ♣ ♦ ♥ ♠
+  </div>
+</body>
+</html>

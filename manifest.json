@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Stop The Sequence",
+  "version": "1.0.0",
+  "description": "Auto-fill job application forms to save time while applying for jobs.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.workday.com/*",
+        "*://*.ashbyhq.com/*",
+        "*://*.icims.com/*",
+        "*://*.smartrecruiters.com/*",
+        "*://*.jobvite.com/*",
+        "*://*.breezy.hr/*",
+        "*://*.applytojob.com/*",
+        "*://*.jazz.co/*",
+        "*://*.bamboohr.com/*",
+        "*://*.recruitee.com/*",
+        "*://*.zohorecruit.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
