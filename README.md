@@ -13,7 +13,7 @@ Smart Field Matching	Use label/placeholder/attribute heuristics + fuzzy matching
 Custom Answers	Store answers to common screening questions (visa status, years of experience, etc.)
 Cover Letter Generation	(Optional) Generate tailored cover letters using AI
 
-Architecture Overview
+```Architecture Overview
 ┌─────────────────────────────────────────────┐
 │              Browser Extension               │
 │                                              │
@@ -36,6 +36,7 @@ Architecture Overview
                   │  Server    │
                   │ (AI/Auth)  │
                   └────────────┘
+```
 
 Project Phases
 Phase 1 — Foundation (MVP)
@@ -54,7 +55,7 @@ Fuzzy field matching (handle labels like "First Name", "fname", "given name")
 Screening question database (common Q&A: work authorization, years of exp, etc.)
 Let users save custom Q&A pairs
 
-Folder Structure (Proposed)
+```Folder Structure (Proposed)
 stop-the-sequence/
 ├── manifest.json            # Chrome extension manifest v3
 ├── src/
@@ -85,3 +86,4 @@ stop-the-sequence/
 ├── tsconfig.json
 ├── package.json
 └── README.md
+```
