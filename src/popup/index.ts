@@ -12,7 +12,7 @@ const FIELD_IDS: (keyof UserProfile)[] = [
 function showStatus(message: string, isError = false): void {
   const status = document.getElementById('status')!;
   status.textContent = message;
-  status.style.color = isError ? '#FF6B6B' : '#D4AF37';
+  status.style.color = isError ? '#C8102E' : '#B8860B';
   const duration = isError ? 5000 : 3000;
   setTimeout(() => { status.textContent = ''; }, duration);
 }

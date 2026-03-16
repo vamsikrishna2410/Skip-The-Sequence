@@ -13,51 +13,46 @@
 
     body {
       width: 380px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1B5E20;
-      color: #F5F5DC;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: #F5F0E8;
+      color: #2C2420;
     }
 
     .header {
-      background: linear-gradient(135deg, #0D3B0E 0%, #1B5E20 50%, #0D3B0E 100%);
-      color: #D4AF37;
-      padding: 18px 20px;
+      background: #2C2420;
+      color: #F5F0E8;
+      padding: 18px 20px 14px;
       text-align: center;
-      border-bottom: 3px solid #D4AF37;
       position: relative;
     }
 
     .header::before {
       content: '';
       position: absolute;
-      top: 0;
+      bottom: 0;
       left: 0;
       right: 0;
       height: 3px;
-      background: linear-gradient(90deg, #C41E3A, #D4AF37, #1565C0, #D4AF37, #C41E3A);
+      background: linear-gradient(90deg, #C8102E, #B8860B, #1D4289, #B8860B, #C8102E);
     }
 
     .header h1 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      letter-spacing: 1.5px;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
     }
 
     .header p {
       font-size: 11px;
-      color: #F5F5DC;
-      opacity: 0.85;
-      margin-top: 4px;
+      color: #B8A99A;
+      margin-top: 3px;
       letter-spacing: 0.5px;
     }
 
     .content {
       padding: 16px 20px;
-      background: #2E7D32;
-      background-image: 
-        radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%);
+      background: #F5F0E8;
     }
 
     .field-group {
@@ -66,22 +61,22 @@
 
     .field-group label {
       display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: #D4AF37;
+      font-size: 10px;
+      font-weight: 700;
+      color: #7A6F65;
       margin-bottom: 4px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
     }
 
     .field-group input {
       width: 100%;
-      padding: 8px 12px;
-      border: 1px solid #4CAF50;
-      border-radius: 4px;
+      padding: 9px 12px;
+      border: 1px solid #D5CBBF;
+      border-radius: 5px;
       font-size: 14px;
-      background: #1B5E20;
-      color: #F5F5DC;
+      background: #FFFDF8;
+      color: #2C2420;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
@@ -91,8 +86,8 @@
 
     .field-group input:focus {
       outline: none;
-      border-color: #D4AF37;
-      box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+      border-color: #B8860B;
+      box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.15);
     }
 
     .row {
@@ -113,47 +108,48 @@
     .btn {
       flex: 1;
       padding: 10px;
-      border: 2px solid #D4AF37;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 700;
+      border: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     .btn:hover {
       transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 3px 10px rgba(44, 36, 32, 0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .btn-fill {
-      background: #C41E3A;
-      color: #F5F5DC;
-      border-color: #D4AF37;
+      background: #C8102E;
+      color: #FFFDF8;
     }
 
     .btn-fill:hover {
-      background: #A01830;
+      background: #A30D25;
     }
 
     .btn-save {
-      background: #1565C0;
-      color: #F5F5DC;
-      border-color: #D4AF37;
+      background: #1D4289;
+      color: #FFFDF8;
     }
 
     .btn-save:hover {
-      background: #0D47A1;
+      background: #153268;
     }
 
     .status {
       text-align: center;
       margin-top: 12px;
-      font-size: 13px;
-      min-height: 20px;
-      color: #D4AF37;
+      font-size: 12px;
+      min-height: 18px;
+      color: #B8860B;
       font-weight: 600;
     }
 
@@ -161,10 +157,9 @@
       text-align: center;
       padding: 8px;
       font-size: 10px;
-      color: #4CAF50;
-      background: #0D3B0E;
-      border-top: 2px solid #D4AF37;
-      letter-spacing: 0.5px;
+      color: #B8A99A;
+      border-top: 1px solid #D5CBBF;
+      letter-spacing: 1px;
     }
   </style>
 </head>
@@ -218,14 +213,14 @@
 
     <div class="actions">
       <button class="btn btn-save" id="saveBtn">Save Profile</button>
-      <button class="btn btn-fill" id="fillBtn">♠ Auto-Fill</button>
+      <button class="btn btn-fill" id="fillBtn">Auto-Fill</button>
     </div>
 
     <div class="status" id="status"></div>
   </div>
 
   <div class="footer">
-    ♠ ♥ ♦ ♣ &mdash; Play your cards right &mdash; ♣ ♦ ♥ ♠
+    ♠ ♥ ♦ ♣
   </div>
 </body>
 </html>
