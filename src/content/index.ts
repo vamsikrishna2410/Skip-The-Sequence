@@ -19,6 +19,6 @@ async function handleFill(): Promise<{ success: boolean; filledCount: number; er
   if (!profile) {
     return { success: false, filledCount: 0, error: 'No profile saved yet. Open the extension and save your profile first.' };
   }
-  const filledCount = detectAndFill(profile);
+  const filledCount = await detectAndFill(profile);
   return { success: true, filledCount };
 }
