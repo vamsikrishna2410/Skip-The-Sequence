@@ -1,0 +1,109 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stop The Sequence</title><style>* {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 300px;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: #F5F0E8;
+      color: #2C2420;
+    }
+
+    .header {
+      background: #2C2420;
+      color: #F5F0E8;
+      padding: 16px 20px 12px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #C8102E, #B8860B, #1D4289, #B8860B, #C8102E);
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .header p {
+      font-size: 10px;
+      color: #B8A99A;
+      margin-top: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    .content {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(44, 36, 32, 0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-fill {
+      background: #C8102E;
+      color: #FFFDF8;
+      margin-bottom: 10px;
+    }
+
+    .btn-fill:hover {
+      background: #A30D25;
+    }
+
+    .btn-profile {
+      background: transparent;
+      color: #7A6F65;
+      border: 1px solid #D5CBBF;
+      font-size: 12px;
+      padding: 8px;
+    }
+
+    .btn-profile:hover {
+      background: #EDE8E0;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 12px;
+      min-height: 18px;
+      color: #B8860B;
+      font-weight: 600;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 8px;
+      font-size: 10px;
+      color: #B8A99A;
+      border-top: 1px solid #D5CBBF;
+      letter-spacing: 1px;
+    }</style><script defer="defer" src="popup.js"></script></head><body><div class="header"><h1>Stop The Sequence</h1><p>Auto-fill job applications instantly</p></div><div class="content"><button class="btn btn-fill" id="fillBtn">Auto-Fill</button> <button class="btn btn-profile" id="profileBtn">Manage Profile</button><div class="status" id="status"></div></div><div class="footer">&#9824; &#9829; &#9830; &#9827;</div></body></html>
