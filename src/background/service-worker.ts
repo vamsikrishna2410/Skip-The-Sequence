@@ -17,18 +17,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'fillForm') {
     // Forward fill request to the active tab's content script
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tabId = tabs[0]?.id;
       if (!tabId) {
         sendResponse({ success: false, filledCount: 0, error: 'No active tab found' });
         return;
       }
-      chrome.tabs.sendMessage(tabId, { action: 'fillForm' }, (response) => {
-        if (chrome.runtime.lastError) {
-          sendResponse({ success: false, filledCount: 0, error: 'Could not reach page. Is it a supported job site?' });
+
+      // Try sending to existing content script first
+      chrome.tabs.sendMessage(tabId, { action: 'fillForm' }, async (response) => {
+        if (!chrome.runtime.lastError && response) {
+          sendResponse(response);
           return;
         }
-        sendResponse(response);
+
+        // Content script not loaded — inject it programmatically and retry
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId, allFrames: true },
+            files: ['content.js'],
+          });
+          // Small delay for the script to initialize its listener
+          setTimeout(() => {
+            chrome.tabs.sendMessage(tabId, { action: 'fillForm' }, (retryResponse) => {
+              if (chrome.runtime.lastError || !retryResponse) {
+                sendResponse({ success: false, filledCount: 0, error: 'Could not reach page. Is it a supported job site?' });
+                return;
+              }
+              sendResponse(retryResponse);
+            });
+          }, 300);
+        } catch {
+          sendResponse({ success: false, filledCount: 0, error: 'Could not reach page. Is it a supported job site?' });
+        }
       });
     });
     return true; // keep message channel open for async response

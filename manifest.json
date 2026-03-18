@@ -5,7 +5,8 @@
   "description": "Auto-fill job application forms to save time while applying for jobs.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "action": {
     "default_popup": "popup.html"
@@ -35,7 +36,8 @@
         "*://*.zohorecruit.com/*"
       ],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ]
 }

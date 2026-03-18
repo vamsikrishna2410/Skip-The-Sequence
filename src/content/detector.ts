@@ -1,26 +1,39 @@
 // Form detection and auto-fill engine
 // Uses heuristic matching on labels, placeholders, names, and IDs
 
-import { UserProfile } from '../shared/types';
+import { UserProfile, ProfileFieldKey } from '../shared/types';
 
 interface FieldMapping {
   keywords: string[];
-  profileKey: keyof UserProfile;
+  profileKey: ProfileFieldKey;
 }
 
 // Map of form field keywords to profile fields
 const FIELD_MAPPINGS: FieldMapping[] = [
+  // Personal
   { keywords: ['first name', 'firstname', 'first_name', 'fname', 'given name'], profileKey: 'firstName' },
   { keywords: ['last name', 'lastname', 'last_name', 'lname', 'surname', 'family name'], profileKey: 'lastName' },
   { keywords: ['email', 'e-mail', 'email address'], profileKey: 'email' },
   { keywords: ['phone', 'telephone', 'mobile', 'phone number', 'tel'], profileKey: 'phone' },
+  { keywords: ['address', 'address line', 'street address', 'address line 1', 'street', 'address1', 'addressline1'], profileKey: 'address' },
   { keywords: ['city', 'location'], profileKey: 'city' },
   { keywords: ['state', 'province'], profileKey: 'state' },
   { keywords: ['zip', 'postal', 'zip code', 'postal code'], profileKey: 'zipCode' },
   { keywords: ['linkedin', 'linkedin url', 'linkedin profile'], profileKey: 'linkedinUrl' },
+
+  // Current / most-recent work
   { keywords: ['job title', 'current title', 'title', 'position', 'role', 'designation'], profileKey: 'jobTitle' },
   { keywords: ['company', 'current company', 'employer', 'organization', 'company name'], profileKey: 'company' },
-  { keywords: ['years of experience', 'years experience', 'experience', 'total experience', 'work experience'], profileKey: 'yearsOfExperience' },
+  { keywords: ['years of experience', 'years experience', 'total experience', 'work experience'], profileKey: 'yearsOfExperience' },
+
+  // Work preferences
+  { keywords: ['desired title', 'desired job title', 'preferred title', 'desired role', 'preferred role'], profileKey: 'desiredJobTitle' },
+  { keywords: ['desired salary', 'expected salary', 'salary expectation', 'compensation', 'salary range', 'expected compensation', 'desired pay'], profileKey: 'desiredSalary' },
+  { keywords: ['authorized to work', 'work authorization', 'legally authorized', 'eligible to work', 'right to work', 'authorization'], profileKey: 'workAuthorization' },
+  { keywords: ['sponsorship', 'visa sponsorship', 'require sponsorship', 'need sponsorship', 'immigration sponsorship'], profileKey: 'sponsorshipNeeded' },
+  { keywords: ['willing to relocate', 'open to relocation', 'relocate', 'relocation'], profileKey: 'willingToRelocate' },
+  { keywords: ['remote', 'work location preference', 'remote preference', 'on-site', 'onsite', 'hybrid', 'workplace type'], profileKey: 'remotePreference' },
+  { keywords: ['earliest start date', 'start date', 'available to start', 'earliest available', 'when can you start', 'availability'], profileKey: 'earliestStartDate' },
 ];
 
 /**
@@ -62,7 +75,7 @@ function getFieldIdentifiers(input: HTMLInputElement | HTMLTextAreaElement | HTM
 /**
  * Find the matching profile key for a form field
  */
-function matchField(identifiers: string): keyof UserProfile | null {
+function matchField(identifiers: string): ProfileFieldKey | null {
   for (const mapping of FIELD_MAPPINGS) {
     for (const keyword of mapping.keywords) {
       if (identifiers.includes(keyword)) {
@@ -104,7 +117,7 @@ function setFieldValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSel
  */
 export function detectAndFill(profile: UserProfile): number {
   const inputs = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-    'input[type="text"], input[type="email"], input[type="tel"], input[type="url"], textarea'
+    'input[type="text"], input[type="email"], input[type="tel"], input[type="url"], input[type="number"], textarea, select'
   );
 
   let filledCount = 0;
