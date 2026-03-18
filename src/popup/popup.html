@@ -12,7 +12,7 @@
     }
 
     body {
-      width: 380px;
+      width: 300px;
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
       background: #F5F0E8;
       color: #2C2420;
@@ -21,7 +21,7 @@
     .header {
       background: #2C2420;
       color: #F5F0E8;
-      padding: 18px 20px 14px;
+      padding: 16px 20px 12px;
       text-align: center;
       position: relative;
     }
@@ -37,80 +37,30 @@
     }
 
     .header h1 {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       letter-spacing: 2px;
       text-transform: uppercase;
     }
 
     .header p {
-      font-size: 11px;
+      font-size: 10px;
       color: #B8A99A;
-      margin-top: 3px;
+      margin-top: 2px;
       letter-spacing: 0.5px;
     }
 
     .content {
-      padding: 16px 20px;
-      background: #F5F0E8;
-    }
-
-    .field-group {
-      margin-bottom: 12px;
-    }
-
-    .field-group label {
-      display: block;
-      font-size: 10px;
-      font-weight: 700;
-      color: #7A6F65;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-    }
-
-    .field-group input {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid #D5CBBF;
-      border-radius: 5px;
-      font-size: 14px;
-      background: #FFFDF8;
-      color: #2C2420;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .field-group input::placeholder {
-      color: transparent;
-    }
-
-    .field-group input:focus {
-      outline: none;
-      border-color: #B8860B;
-      box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.15);
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .row .field-group {
-      flex: 1;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 16px;
+      padding: 20px;
+      text-align: center;
     }
 
     .btn {
-      flex: 1;
-      padding: 10px;
+      width: 100%;
+      padding: 12px;
       border: none;
       border-radius: 5px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
@@ -129,23 +79,26 @@
     .btn-fill {
       background: #C8102E;
       color: #FFFDF8;
+      margin-bottom: 10px;
     }
 
     .btn-fill:hover {
       background: #A30D25;
     }
 
-    .btn-save {
-      background: #1D4289;
-      color: #FFFDF8;
+    .btn-profile {
+      background: transparent;
+      color: #7A6F65;
+      border: 1px solid #D5CBBF;
+      font-size: 12px;
+      padding: 8px;
     }
 
-    .btn-save:hover {
-      background: #153268;
+    .btn-profile:hover {
+      background: #EDE8E0;
     }
 
     .status {
-      text-align: center;
       margin-top: 12px;
       font-size: 12px;
       min-height: 18px;
@@ -170,73 +123,13 @@
   </div>
 
   <div class="content">
-    <div class="row">
-      <div class="field-group">
-        <label>First Name</label>
-        <input type="text" id="firstName">
-      </div>
-      <div class="field-group">
-        <label>Last Name</label>
-        <input type="text" id="lastName">
-      </div>
-    </div>
-
-    <div class="field-group">
-      <label>Email</label>
-      <input type="email" id="email">
-    </div>
-
-    <div class="field-group">
-      <label>Phone</label>
-      <input type="tel" id="phone">
-    </div>
-
-    <div class="row">
-      <div class="field-group">
-        <label>City</label>
-        <input type="text" id="city">
-      </div>
-      <div class="field-group">
-        <label>State</label>
-        <input type="text" id="state">
-      </div>
-      <div class="field-group">
-        <label>Zip Code</label>
-        <input type="text" id="zipCode">
-      </div>
-    </div>
-
-    <div class="field-group">
-      <label>LinkedIn URL</label>
-      <input type="url" id="linkedinUrl">
-    </div>
-
-    <div class="row">
-      <div class="field-group">
-        <label>Job Title</label>
-        <input type="text" id="jobTitle">
-      </div>
-      <div class="field-group">
-        <label>Company</label>
-        <input type="text" id="company">
-      </div>
-    </div>
-
-    <div class="field-group">
-      <label>Years of Experience</label>
-      <input type="text" id="yearsOfExperience">
-    </div>
-
-    <div class="actions">
-      <button class="btn btn-save" id="saveBtn">Save Profile</button>
-      <button class="btn btn-fill" id="fillBtn">Auto-Fill</button>
-    </div>
-
+    <button class="btn btn-fill" id="fillBtn">Auto-Fill</button>
+    <button class="btn btn-profile" id="profileBtn">Manage Profile</button>
     <div class="status" id="status"></div>
   </div>
 
   <div class="footer">
-    ♠ ♥ ♦ ♣
+    &#9824; &#9829; &#9830; &#9827;
   </div>
 </body>
 </html>

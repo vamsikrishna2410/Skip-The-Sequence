@@ -9,6 +9,7 @@ module.exports = {
     background: './src/background/service-worker.ts',
     content: './src/content/index.ts',
     popup: './src/popup/index.ts',
+    options: './src/options/index.ts',
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -42,6 +43,11 @@ module.exports = {
       template: './src/popup/popup.html',
       filename: 'popup.html',
       chunks: ['popup'],
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/options/options.html',
+      filename: 'options.html',
+      chunks: ['options'],
     }),
   ],
 };

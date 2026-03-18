@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stop The Sequence — Profile</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: #F5F0E8;
+      color: #2C2420;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: #2C2420;
+      color: #F5F0E8;
+      padding: 20px 0 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .topbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #C8102E, #B8860B, #1D4289, #B8860B, #C8102E);
+    }
+
+    .topbar h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .topbar p {
+      font-size: 12px;
+      color: #B8A99A;
+      margin-top: 4px;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #7A6F65;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #D5CBBF;
+    }
+
+    .field-group {
+      margin-bottom: 14px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #7A6F65;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .field-group input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #D5CBBF;
+      border-radius: 5px;
+      font-size: 14px;
+      background: #FFFDF8;
+      color: #2C2420;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field-group input:focus {
+      outline: none;
+      border-color: #B8860B;
+      box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.15);
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .row .field-group {
+      flex: 1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      padding: 12px 32px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(44, 36, 32, 0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-save {
+      background: #1D4289;
+      color: #FFFDF8;
+    }
+
+    .btn-save:hover {
+      background: #153268;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      min-height: 20px;
+      color: #B8860B;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Stop The Sequence</h1>
+    <p>Manage your profile</p>
+  </div>
+
+  <div class="container">
+
+    <div class="section">
+      <div class="section-title">Personal Information</div>
+      <div class="row">
+        <div class="field-group">
+          <label>First Name</label>
+          <input type="text" id="firstName">
+        </div>
+        <div class="field-group">
+          <label>Last Name</label>
+          <input type="text" id="lastName">
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="email">
+      </div>
+      <div class="field-group">
+        <label>Phone</label>
+        <input type="tel" id="phone">
+      </div>
+      <div class="row">
+        <div class="field-group">
+          <label>City</label>
+          <input type="text" id="city">
+        </div>
+        <div class="field-group">
+          <label>State</label>
+          <input type="text" id="state">
+        </div>
+        <div class="field-group">
+          <label>Zip Code</label>
+          <input type="text" id="zipCode">
+        </div>
+      </div>
+      <div class="field-group">
+        <label>LinkedIn URL</label>
+        <input type="url" id="linkedinUrl">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Work Experience</div>
+      <div class="row">
+        <div class="field-group">
+          <label>Current Job Title</label>
+          <input type="text" id="jobTitle">
+        </div>
+        <div class="field-group">
+          <label>Current Company</label>
+          <input type="text" id="company">
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Years of Experience</label>
+        <input type="text" id="yearsOfExperience">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-save" id="saveBtn">Save Profile</button>
+    </div>
+    <div class="status" id="status"></div>
+
+  </div>
+</body>
+</html>
