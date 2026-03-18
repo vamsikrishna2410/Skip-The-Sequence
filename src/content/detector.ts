@@ -18,6 +18,9 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['state', 'province'], profileKey: 'state' },
   { keywords: ['zip', 'postal', 'zip code', 'postal code'], profileKey: 'zipCode' },
   { keywords: ['linkedin', 'linkedin url', 'linkedin profile'], profileKey: 'linkedinUrl' },
+  { keywords: ['job title', 'current title', 'title', 'position', 'role', 'designation'], profileKey: 'jobTitle' },
+  { keywords: ['company', 'current company', 'employer', 'organization', 'company name'], profileKey: 'company' },
+  { keywords: ['years of experience', 'years experience', 'experience', 'total experience', 'work experience'], profileKey: 'yearsOfExperience' },
 ];
 
 /**

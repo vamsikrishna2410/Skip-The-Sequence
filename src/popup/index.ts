@@ -7,6 +7,7 @@ const FIELD_IDS: (keyof UserProfile)[] = [
   'firstName', 'lastName', 'email', 'phone',
   'city', 'state', 'zipCode',
   'linkedinUrl',
+  'jobTitle', 'company', 'yearsOfExperience',
 ];
 
 function showStatus(message: string, isError = false): void {

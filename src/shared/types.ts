@@ -9,6 +9,9 @@ export interface UserProfile {
   state: string;
   zipCode: string;
   linkedinUrl: string;
+  jobTitle: string;
+  company: string;
+  yearsOfExperience: string;
 }
 
 export const EMPTY_PROFILE: UserProfile = {
@@ -20,4 +23,7 @@ export const EMPTY_PROFILE: UserProfile = {
   state: '',
   zipCode: '',
   linkedinUrl: '',
+  jobTitle: '',
+  company: '',
+  yearsOfExperience: '',
 };
