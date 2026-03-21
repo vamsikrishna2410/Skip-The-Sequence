@@ -5,10 +5,8 @@ export interface WorkExperience {
   company: string;
   location: string;
   employmentType: string;
-  startMonth: string;
-  startYear: string;
-  endMonth: string;
-  endYear: string;
+  startDate: string; // MM/YYYY
+  endDate: string;   // MM/YYYY
   currentlyWorking: boolean;
   description: string;
 }
@@ -18,10 +16,8 @@ export const EMPTY_EXPERIENCE: WorkExperience = {
   company: '',
   location: '',
   employmentType: '',
-  startMonth: '',
-  startYear: '',
-  endMonth: '',
-  endYear: '',
+  startDate: '',
+  endDate: '',
   currentlyWorking: false,
   description: '',
 };

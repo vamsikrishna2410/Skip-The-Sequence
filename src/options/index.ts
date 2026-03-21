@@ -15,10 +15,7 @@ const FLAT_FIELD_IDS: (keyof UserProfile)[] = [
   'earliestStartDate',
 ];
 
-const MONTHS = [
-  '', 'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+
 
 // ── Status banner ────────────────────────────────────
 function showStatus(message: string, isError = false): void {
@@ -31,13 +28,6 @@ function showStatus(message: string, isError = false): void {
 
 // ── Experience entry HTML builder ────────────────────
 function buildExperienceHTML(index: number, exp: WorkExperience): string {
-  const monthOptions = (selected: string) =>
-    MONTHS.map((m, i) => {
-      const val = i === 0 ? '' : String(i).padStart(2, '0');
-      const sel = val === selected ? ' selected' : '';
-      return `<option value="${val}"${sel}>${m || 'Month'}</option>`;
-    }).join('');
-
   const empTypes = ['', 'Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance', 'Co-op'];
   const empOptions = empTypes.map(t => {
     const sel = t === exp.employmentType ? ' selected' : '';
@@ -74,20 +64,12 @@ function buildExperienceHTML(index: number, exp: WorkExperience): string {
       </div>
       <div class="row">
         <div class="field-group">
-          <label>Start Month</label>
-          <select data-exp="startMonth">${monthOptions(exp.startMonth)}</select>
+          <label>From (MM/YYYY)</label>
+          <input type="text" data-exp="startDate" value="${escapeAttr(exp.startDate)}">
         </div>
         <div class="field-group">
-          <label>Start Year</label>
-          <input type="text" data-exp="startYear" value="${escapeAttr(exp.startYear)}">
-        </div>
-        <div class="field-group">
-          <label>End Month</label>
-          <select data-exp="endMonth"${exp.currentlyWorking ? ' disabled' : ''}>${monthOptions(exp.endMonth)}</select>
-        </div>
-        <div class="field-group">
-          <label>End Year</label>
-          <input type="text" data-exp="endYear" value="${escapeAttr(exp.endYear)}"${exp.currentlyWorking ? ' disabled' : ''}>
+          <label>To (MM/YYYY)</label>
+          <input type="text" data-exp="endDate" value="${escapeAttr(exp.endDate)}"${exp.currentlyWorking ? ' disabled' : ''}>
         </div>
       </div>
       <div class="checkbox-group">
@@ -148,13 +130,10 @@ function wireCurrentlyWorkingCheckboxes(): void {
   document.querySelectorAll<HTMLInputElement>('[data-exp="currentlyWorking"]').forEach(cb => {
     cb.addEventListener('change', () => {
       const entry = cb.closest('.experience-entry')!;
-      const endMonth = entry.querySelector('[data-exp="endMonth"]') as HTMLSelectElement;
-      const endYear = entry.querySelector('[data-exp="endYear"]') as HTMLInputElement;
-      endMonth.disabled = cb.checked;
-      endYear.disabled = cb.checked;
+      const endDate = entry.querySelector('[data-exp="endDate"]') as HTMLInputElement;
+      endDate.disabled = cb.checked;
       if (cb.checked) {
-        endMonth.value = '';
-        endYear.value = '';
+        endDate.value = '';
       }
     });
   });
@@ -175,10 +154,8 @@ function readExperiences(): WorkExperience[] {
       company: get('company'),
       location: get('location'),
       employmentType: get('employmentType'),
-      startMonth: get('startMonth'),
-      startYear: get('startYear'),
-      endMonth: get('endMonth'),
-      endYear: get('endYear'),
+      startDate: get('startDate'),
+      endDate: get('endDate'),
       currentlyWorking: cb ? cb.checked : false,
       description: get('description'),
     });
@@ -204,6 +181,9 @@ function readForm(): UserProfile {
   if (experiences.length > 0) {
     profile.jobTitle = experiences[0].jobTitle;
     profile.company = experiences[0].company;
+    if (experiences[0].startDate && experiences[0].startDate.trim() !== '') {
+      profile.earliestStartDate = experiences[0].startDate.trim();
+    }
   }
 
   return profile;

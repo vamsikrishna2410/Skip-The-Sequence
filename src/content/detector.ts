@@ -1,7 +1,7 @@
 // Form detection and auto-fill engine
 // Uses heuristic matching on labels, placeholders, names, and IDs.
 
-import { UserProfile, ProfileFieldKey } from '../shared/types';
+import { UserProfile, ProfileFieldKey, WorkExperience } from '../shared/types';
 
 interface FieldMapping {
   keywords: string[];
@@ -69,7 +69,7 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['sponsorship', 'visa sponsorship', 'require sponsorship', 'need sponsorship', 'immigration sponsorship'], profileKey: 'sponsorshipNeeded' },
   { keywords: ['willing to relocate', 'open to relocation', 'relocate', 'relocation'], profileKey: 'willingToRelocate' },
   { keywords: ['remote', 'work location preference', 'remote preference', 'on-site', 'onsite', 'hybrid', 'workplace type'], profileKey: 'remotePreference' },
-  { keywords: ['earliest start date', 'start date', 'available to start', 'earliest available', 'when can you start', 'availability'], profileKey: 'earliestStartDate' },
+  { keywords: ['earliest start date', 'available to start', 'earliest available', 'when can you start', 'availability'], profileKey: 'earliestStartDate' },
 ];
 
 const US_STATES: Record<string, string> = {
@@ -221,26 +221,22 @@ function matchFallbackValue(identifiers: string): FallbackFieldValue | null {
   return null;
 }
 
-function monthToNumber(month: string): string {
-  const raw = normalizeForMatch(month);
-  if (!raw) return '';
-  if (/^\d{1,2}$/.test(raw)) {
-    return raw.padStart(2, '0');
+function resolveExperienceStartDate(exp: WorkExperience): string {
+  const startDate = (exp.startDate ?? '').trim();
+  if (/^\d{1,2}\/\d{4}$/.test(startDate)) {
+    const [m, y] = startDate.split('/');
+    return `${m.padStart(2, '0')}/${y}`;
   }
-  const monthMap: Record<string, string> = {
-    january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
-    july: '07', august: '08', september: '09', october: '10', november: '11', december: '12',
-    jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', aug: '08', sep: '09',
-    sept: '09', oct: '10', nov: '11', dec: '12',
-  };
-  return monthMap[raw] || '';
+  return '';
 }
 
-function formatMonthYear(month: string, year: string): string {
-  const mm = monthToNumber(month);
-  const yyyy = year.trim();
-  if (!mm || !/^\d{4}$/.test(yyyy)) return '';
-  return `${mm}/${yyyy}`;
+function resolveExperienceEndDate(exp: WorkExperience): string {
+  const endDate = (exp.endDate ?? '').trim();
+  if (/^\d{1,2}\/\d{4}$/.test(endDate)) {
+    const [m, y] = endDate.split('/');
+    return `${m.padStart(2, '0')}/${y}`;
+  }
+  return '';
 }
 
 function resolveWorkExperienceValue(
@@ -249,6 +245,8 @@ function resolveWorkExperienceValue(
 ): { value: string; preferStateMatching: boolean } | null {
   const exp = profile.workExperiences?.[0];
   if (!exp) return null;
+  const startDate = resolveExperienceStartDate(exp);
+  const endDate = resolveExperienceEndDate(exp);
 
   const id = normalizeForMatch(identifiers);
 
@@ -275,20 +273,18 @@ function resolveWorkExperienceValue(
   const endDateLike = id.includes('to') || id.includes('end');
   const dateLike = id.includes('date') || id.includes('mm yyyy') || id.includes('month') || id.includes('year');
 
-  if (startDateLike && dateLike) {
-    const formattedStart = formatMonthYear(exp.startMonth, exp.startYear);
-    if (formattedStart) {
-      return { value: formattedStart, preferStateMatching: false };
+  if (startDateLike || (dateLike && (id.includes('from') || id.includes('start')))) {
+    if (startDate) {
+      return { value: startDate, preferStateMatching: false };
     }
   }
 
-  if (endDateLike && dateLike) {
+  if (endDateLike || (dateLike && (id.includes('to') || id.includes('end')))) {
     if (exp.currentlyWorking) {
       return null;
     }
-    const formattedEnd = formatMonthYear(exp.endMonth, exp.endYear);
-    if (formattedEnd) {
-      return { value: formattedEnd, preferStateMatching: false };
+    if (endDate) {
+      return { value: endDate, preferStateMatching: false };
     }
   }
 
@@ -732,7 +728,151 @@ function isTruthyValue(value: string): boolean {
   return normalized === 'true' || normalized === 'yes' || normalized === '1' || normalized === 'on';
 }
 
+function isMonthYearMaskedInput(element: HTMLInputElement): boolean {
+  const hint = normalizeForMatch(
+    [
+      element.placeholder || '',
+      element.getAttribute('aria-label') || '',
+      element.getAttribute('name') || '',
+      element.getAttribute('id') || '',
+      getTextFromAriaLabelledBy(element),
+      getNearbyLabelText(element),
+    ].join(' ')
+  );
+  return (
+    element.type === 'text' &&
+    (hint.includes('mm yyyy') || hint.includes('month year') || hint.includes('from') || hint.includes('to'))
+  );
+}
+
+function isDateLikeInput(element: HTMLInputElement): boolean {
+  return element.type === 'month' || element.type === 'date' || isMonthYearMaskedInput(element);
+}
+
+function getClosestExperienceContainer(element: HTMLElement): HTMLElement | null {
+  const containers = Array.from(element.closest('form, fieldset, section, li, div')?.querySelectorAll<HTMLElement>('fieldset, section, li, div') || []);
+  containers.unshift(element.closest('fieldset, section, li, div') as HTMLElement);
+  for (const container of containers) {
+    if (!container) continue;
+    const text = normalizeForMatch(container.textContent || '');
+    if (text.includes('job title') || text.includes('company') || text.includes('currently work')) {
+      return container;
+    }
+  }
+  return element.closest('form') as HTMLElement | null;
+}
+
+function resolveExperienceDateByPosition(
+  profile: UserProfile,
+  element: HTMLInputElement
+): string | null {
+  const exp = profile.workExperiences?.[0];
+  if (!exp) return null;
+  const startDate = resolveExperienceStartDate(exp);
+  const endDate = resolveExperienceEndDate(exp);
+
+  const container = getClosestExperienceContainer(element);
+  if (!container) return null;
+
+  const dateInputs = Array.from(container.querySelectorAll<HTMLInputElement>('input'))
+    .filter((input) => isElementVisible(input) && isDateLikeInput(input));
+
+  const idx = dateInputs.indexOf(element);
+  if (idx < 0) return null;
+
+  if (idx === 0) {
+    return startDate || null;
+  }
+
+  if (idx === 1) {
+    if (exp.currentlyWorking) return '';
+    return endDate || null;
+  }
+
+  return null;
+}
+
+function toMonthYearDigits(value: string): string {
+  const trimmed = value.trim();
+  if (/^\d{4}$/.test(trimmed)) {
+    return `01${trimmed}`;
+  }
+  const mmYyyy = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
+  if (mmYyyy) {
+    return `${mmYyyy[1].padStart(2, '0')}${mmYyyy[2]}`;
+  }
+  return trimmed.replace(/\D/g, '');
+}
+
+async function typeIntoMaskedInput(element: HTMLInputElement, digits: string): Promise<void> {
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+  const previousValue = element.value;
+
+  element.focus();
+  element.click();
+
+  if (nativeInputValueSetter) {
+    nativeInputValueSetter.call(element, '');
+  } else {
+    element.value = '';
+  }
+  syncReactValueTracker(element, previousValue);
+  element.dispatchEvent(new Event('input', { bubbles: true }));
+
+  let current = '';
+  for (const ch of digits) {
+    element.dispatchEvent(new KeyboardEvent('keydown', { key: ch, bubbles: true }));
+    const before = element.value;
+    current += ch;
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(element, current);
+    } else {
+      element.value = current;
+    }
+    syncReactValueTracker(element, before);
+    try {
+      element.dispatchEvent(new InputEvent('input', { bubbles: true, data: ch, inputType: 'insertText' }));
+    } catch {
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    element.dispatchEvent(new KeyboardEvent('keyup', { key: ch, bubbles: true }));
+    await delay(20);
+  }
+
+  if (!/^\d{1,2}\/\d{4}$/.test(element.value.trim()) && digits.length >= 6) {
+    const mm = digits.slice(0, 2);
+    const yyyy = digits.slice(2, 6);
+    const forced = `${mm}/${yyyy}`;
+    const before = element.value;
+    if (nativeInputValueSetter) {
+      nativeInputValueSetter.call(element, forced);
+    } else {
+      element.value = forced;
+    }
+    syncReactValueTracker(element, before);
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  element.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 function adaptValueForInputType(element: HTMLInputElement, rawValue: string): string {
+  const placeholder = normalizeForMatch(element.placeholder || '');
+
+  if (
+    (element.type === 'text' || element.type === '' || element.type === 'search') &&
+    placeholder.includes('mm yyyy')
+  ) {
+    const trimmed = rawValue.trim();
+    if (/^\d{4}$/.test(trimmed)) {
+      return `01/${trimmed}`;
+    }
+    if (/^\d{1,2}\/\d{4}$/.test(trimmed)) {
+      const [month, year] = trimmed.split('/');
+      return `${month.padStart(2, '0')}/${year}`;
+    }
+  }
+
   if (element.type === 'month') {
     const normalized = rawValue.trim();
     const match = normalized.match(/^(\d{1,2})\/(\d{4})$/);
@@ -866,6 +1006,15 @@ async function setFieldValue(element: FillableElement, value: string, preferStat
       return;
     }
 
+    if (element instanceof HTMLInputElement && isMonthYearMaskedInput(element)) {
+      const digits = toMonthYearDigits(value);
+      if (digits.length >= 6) {
+        await typeIntoMaskedInput(element, digits.slice(0, 6));
+        commitFocusOut(element);
+        return;
+      }
+    }
+
     if (isComboboxInput(element)) {
       const selected = await fillComboboxInput(element, value, preferStateMatching);
       if (!selected) {
@@ -944,21 +1093,14 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
     }
 
     const identifiers = getFieldIdentifiers(input);
-    const profileKey = matchField(identifiers);
-
+    const normalizedIdentifiers = normalizeForMatch(identifiers);
     let value = '';
     let preferStateMatching = false;
 
-    if (profileKey) {
-      value = profile[profileKey].trim();
-      preferStateMatching = profileKey === 'state';
-    }
-
-    if (!value) {
-      const fallback = matchFallbackValue(identifiers);
-      if (fallback) {
-        value = fallback.value;
-        preferStateMatching = Boolean(fallback.preferStateMatching);
+    if (input instanceof HTMLInputElement && isDateLikeInput(input)) {
+      const positionalDate = resolveExperienceDateByPosition(profile, input);
+      if (positionalDate) {
+        value = positionalDate;
       }
     }
 
@@ -967,6 +1109,30 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
       if (expValue) {
         value = expValue.value;
         preferStateMatching = expValue.preferStateMatching;
+      }
+    }
+
+    if (!value) {
+      const profileKey = matchField(identifiers);
+      if (profileKey) {
+        // Do not let generic earliest start date override experience From/To fields.
+        if (
+          profileKey === 'earliestStartDate' &&
+          (normalizedIdentifiers.includes('from') || normalizedIdentifiers.includes('to') || normalizedIdentifiers.includes('currently work'))
+        ) {
+          value = '';
+        } else {
+          value = profile[profileKey].trim();
+          preferStateMatching = profileKey === 'state';
+        }
+      }
+    }
+
+    if (!value) {
+      const fallback = matchFallbackValue(identifiers);
+      if (fallback) {
+        value = fallback.value;
+        preferStateMatching = Boolean(fallback.preferStateMatching);
       }
     }
 
