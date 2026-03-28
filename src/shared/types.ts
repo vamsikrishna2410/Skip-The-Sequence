@@ -27,11 +27,14 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   email: string;
+  phoneCountryCode: string;
   phone: string;
   address: string;
+  address2: string;
   city: string;
   state: string;
   zipCode: string;
+  country: string;
   linkedinUrl: string;
 
   // Current / most-recent work (auto-fill targets)
@@ -40,40 +43,43 @@ export interface UserProfile {
   yearsOfExperience: string;
 
   // Work preferences (auto-fill targets)
-  desiredJobTitle: string;
-  desiredSalary: string;
   workAuthorization: string;
   sponsorshipNeeded: string;
   willingToRelocate: string;
-  remotePreference: string;
-  earliestStartDate: string;
+
+  // File Attachments
+  hasResume?: boolean;
+  resumeMetadata?: {
+    name: string;
+    lastUpdated: number;
+  };
 
   // Work history entries
   workExperiences: WorkExperience[];
 }
 
 // Keys that map to simple string fields (used by detector)
-export type ProfileFieldKey = Exclude<keyof UserProfile, 'workExperiences'>;
+export type ProfileFieldKey = Exclude<keyof UserProfile, 'workExperiences' | 'hasResume' | 'resumeMetadata'>;
 
 export const EMPTY_PROFILE: UserProfile = {
   firstName: '',
   lastName: '',
   email: '',
+  phoneCountryCode: '',
   phone: '',
   address: '',
+  address2: '',
   city: '',
   state: '',
   zipCode: '',
+  country: '',
   linkedinUrl: '',
   jobTitle: '',
   company: '',
   yearsOfExperience: '',
-  desiredJobTitle: '',
-  desiredSalary: '',
   workAuthorization: '',
   sponsorshipNeeded: '',
   willingToRelocate: '',
-  remotePreference: '',
-  earliestStartDate: '',
+  hasResume: false,
   workExperiences: [],
 };

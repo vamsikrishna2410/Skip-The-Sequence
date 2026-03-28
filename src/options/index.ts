@@ -2,17 +2,16 @@
 
 import { saveProfile, getProfileOrDefault } from '../storage/profile';
 import { UserProfile, WorkExperience, EMPTY_PROFILE, EMPTY_EXPERIENCE } from '../shared/types';
+import { saveResumeFile, getResumeFile, deleteResumeFile } from '../shared/storage';
 
 // Simple string fields read/written via their element id
 const FLAT_FIELD_IDS: (keyof UserProfile)[] = [
-  'firstName', 'lastName', 'email', 'phone',
-  'address', 'city', 'state', 'zipCode',
+  'firstName', 'lastName', 'email', 'phoneCountryCode', 'phone',
+  'address', 'address2', 'city', 'state', 'zipCode', 'country',
   'linkedinUrl',
   'yearsOfExperience',
-  'desiredJobTitle', 'desiredSalary',
   'workAuthorization', 'sponsorshipNeeded',
-  'willingToRelocate', 'remotePreference',
-  'earliestStartDate',
+  'willingToRelocate',
 ];
 
 
@@ -181,12 +180,72 @@ function readForm(): UserProfile {
   if (experiences.length > 0) {
     profile.jobTitle = experiences[0].jobTitle;
     profile.company = experiences[0].company;
-    if (experiences[0].startDate && experiences[0].startDate.trim() !== '') {
-      profile.earliestStartDate = experiences[0].startDate.trim();
-    }
   }
 
   return profile;
+}
+
+// ── Resume ───────────────────────────────────────────
+let currentProfile: UserProfile | null = null;
+
+function renderResumeUi(profile: UserProfile): void {
+  const metadataEl = document.getElementById('resumeMetadata')!;
+  const removeBtn = document.getElementById('removeResumeBtn')!;
+  const fileInput = document.getElementById('resumeFile') as HTMLInputElement;
+
+  if (profile.hasResume && profile.resumeMetadata) {
+    metadataEl.textContent = `Uploaded: ${profile.resumeMetadata.name}`;
+    metadataEl.style.display = 'block';
+    removeBtn.style.display = 'block';
+  } else {
+    metadataEl.textContent = '';
+    metadataEl.style.display = 'none';
+    removeBtn.style.display = 'none';
+    fileInput.value = '';
+  }
+}
+
+async function handleResumeUpload(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file || !currentProfile) return;
+
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  if (file.size > MAX_SIZE) {
+    showStatus('File too large. Maximum size is 5MB.', true);
+    input.value = '';
+    return;
+  }
+
+  try {
+    await saveResumeFile(file);
+    currentProfile.hasResume = true;
+    currentProfile.resumeMetadata = {
+      name: file.name,
+      lastUpdated: Date.now()
+    };
+    await saveProfile(currentProfile);
+    renderResumeUi(currentProfile);
+    showStatus('Resume uploaded successfully!');
+  } catch (err) {
+    showStatus('Failed to upload resume.', true);
+    console.error(err);
+  }
+}
+
+async function handleResumeRemove(): Promise<void> {
+  if (!currentProfile) return;
+  try {
+    await deleteResumeFile();
+    currentProfile.hasResume = false;
+    currentProfile.resumeMetadata = undefined;
+    await saveProfile(currentProfile);
+    renderResumeUi(currentProfile);
+    showStatus('Resume removed.');
+  } catch (err) {
+    showStatus('Failed to remove resume.', true);
+    console.error(err);
+  }
 }
 
 // ── Populate DOM from profile ────────────────────────
@@ -206,8 +265,9 @@ function populateForm(profile: UserProfile): void {
 
 // ── Init ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  const profile = await getProfileOrDefault();
-  populateForm(profile);
+  currentProfile = await getProfileOrDefault();
+  populateForm(currentProfile);
+  renderResumeUi(currentProfile);
 
   document.getElementById('addExperienceBtn')!.addEventListener('click', () => {
     const current = readExperiences();
@@ -216,8 +276,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('saveBtn')!.addEventListener('click', async () => {
-    const profile = readForm();
-    await saveProfile(profile);
+    // Preserve current resume state across form saves
+    const newProfile = readForm();
+    if (currentProfile) {
+      newProfile.hasResume = currentProfile.hasResume;
+      newProfile.resumeMetadata = currentProfile.resumeMetadata;
+    }
+    await saveProfile(newProfile);
+    currentProfile = newProfile;
     showStatus('Profile saved!');
   });
+
+  document.getElementById('resumeFile')!.addEventListener('change', handleResumeUpload);
+  document.getElementById('removeResumeBtn')!.addEventListener('click', handleResumeRemove);
 });

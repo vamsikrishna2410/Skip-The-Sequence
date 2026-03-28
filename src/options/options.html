@@ -273,13 +273,23 @@
         <label>Email</label>
         <input type="email" id="email">
       </div>
-      <div class="field-group">
-        <label>Phone</label>
-        <input type="tel" id="phone">
+      <div class="row">
+        <div class="field-group" style="flex: 0 0 120px;">
+          <label>Country Code</label>
+          <input type="text" id="phoneCountryCode" placeholder="+1">
+        </div>
+        <div class="field-group">
+          <label>Phone</label>
+          <input type="tel" id="phone">
+        </div>
       </div>
       <div class="field-group">
         <label>Address Line 1</label>
         <input type="text" id="address">
+      </div>
+      <div class="field-group">
+        <label>Address Line 2</label>
+        <input type="text" id="address2">
       </div>
       <div class="row">
         <div class="field-group">
@@ -294,6 +304,10 @@
           <label>Zip Code</label>
           <input type="text" id="zipCode">
         </div>
+        <div class="field-group">
+          <label>Country</label>
+          <input type="text" id="country">
+        </div>
       </div>
       <div class="field-group">
         <label>LinkedIn URL</label>
@@ -306,15 +320,9 @@
       <div class="section-title">Work Preferences</div>
       <div class="row">
         <div class="field-group">
-          <label>Desired Job Title</label>
-          <input type="text" id="desiredJobTitle">
+          <label>Years of Experience</label>
+          <input type="text" id="yearsOfExperience">
         </div>
-        <div class="field-group">
-          <label>Desired Salary</label>
-          <input type="text" id="desiredSalary">
-        </div>
-      </div>
-      <div class="row">
         <div class="field-group">
           <label>Work Authorization</label>
           <select id="workAuthorization">
@@ -323,6 +331,8 @@
             <option value="No">No — Not authorized</option>
           </select>
         </div>
+      </div>
+      <div class="row">
         <div class="field-group">
           <label>Sponsorship Needed</label>
           <select id="sponsorshipNeeded">
@@ -331,8 +341,6 @@
             <option value="No">No</option>
           </select>
         </div>
-      </div>
-      <div class="row">
         <div class="field-group">
           <label>Willing to Relocate</label>
           <select id="willingToRelocate">
@@ -341,25 +349,22 @@
             <option value="No">No</option>
           </select>
         </div>
-        <div class="field-group">
-          <label>Remote Preference</label>
-          <select id="remotePreference">
-            <option value="">Select…</option>
-            <option value="Remote">Remote</option>
-            <option value="Hybrid">Hybrid</option>
-            <option value="On-site">On-site</option>
-            <option value="No Preference">No Preference</option>
-          </select>
-        </div>
       </div>
-      <div class="row">
-        <div class="field-group">
-          <label>Years of Experience</label>
-          <input type="text" id="yearsOfExperience">
-        </div>
-        <div class="field-group">
-          <label>Earliest Start Date</label>
-          <input type="text" id="earliestStartDate">
+    </div>
+
+    <!-- Resume & Documents -->
+    <div class="section">
+      <div class="section-title">Resume & Documents</div>
+      <p style="margin-top: 0; margin-bottom: 20px; font-size: 0.9em; color: #555;">
+        Upload your resume to automatically attach it to file inputs on job applications.
+      </p>
+      
+      <div class="field-group">
+        <label>Resume (PDF, DOCX)</label>
+        <div id="resume-upload-container" style="display: flex; gap: 10px; align-items: center; border: 1px dashed #ccc; padding: 10px; border-radius: 6px; background: #fafafa;">
+          <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" style="max-width: 250px;">
+          <span id="resumeMetadata" style="font-size: 0.9em; color: #166534; display: none; margin-left: auto;"></span>
+          <button id="removeResumeBtn" type="button" class="btn-secondary" style="display: none; padding: 4px 12px; font-size: 0.85em; border-color: #dc2626; color: #dc2626; margin-left: auto;">Remove</button>
         </div>
       </div>
     </div>

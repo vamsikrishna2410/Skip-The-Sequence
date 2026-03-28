@@ -2,10 +2,11 @@
 // Uses heuristic matching on labels, placeholders, names, and IDs.
 
 import { UserProfile, ProfileFieldKey, WorkExperience } from '../shared/types';
+import { getResumeFile } from '../shared/storage';
 
 interface FieldMapping {
   keywords: string[];
-  profileKey: ProfileFieldKey;
+  profileKey: ProfileFieldKey | 'resume';
 }
 
 type NativeFillable = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -50,11 +51,14 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['first name', 'firstname', 'first_name', 'fname', 'given name'], profileKey: 'firstName' },
   { keywords: ['last name', 'lastname', 'last_name', 'lname', 'surname', 'family name'], profileKey: 'lastName' },
   { keywords: ['email', 'e-mail', 'email address'], profileKey: 'email' },
-  { keywords: ['phone', 'telephone', 'mobile', 'phone number', 'tel'], profileKey: 'phone' },
+  { keywords: ['country code', 'phone code', 'dial code', 'calling code', 'phone prefix', 'phone country code', 'dialing code'], profileKey: 'phoneCountryCode' },
+  { keywords: ['phone number', 'phone', 'telephone', 'mobile', 'tel'], profileKey: 'phone' },
   { keywords: ['city'], profileKey: 'city' },
-  { keywords: ['state', 'province', 'region', 'state/province', 'state province'], profileKey: 'state' },
-  { keywords: ['zip', 'postal', 'zip code', 'postal code'], profileKey: 'zipCode' },
-  { keywords: ['address line', 'street address', 'address line 1', 'street', 'address1', 'addressline1', 'address_line'], profileKey: 'address' },
+  { keywords: ['state', 'province', 'state/province', 'state province'], profileKey: 'state' },
+  { keywords: ['zip', 'postal', 'zip code', 'postal code', 'zip/postal code', 'zip postal code'], profileKey: 'zipCode' },
+  { keywords: ['country/region of residence', 'country of residence', 'country/region', 'country region', 'country'], profileKey: 'country' },
+  { keywords: ['address line 2', 'address 2', 'address2', 'addressline2', 'address_line_2', 'address_line2', 'apt', 'suite', 'apartment'], profileKey: 'address2' },
+  { keywords: ['address line 1', 'address line', 'street address', 'address1', 'addressline1', 'address_line', 'address_line_1', 'address'], profileKey: 'address' },
   { keywords: ['linkedin', 'linkedin url', 'linkedin profile'], profileKey: 'linkedinUrl' },
 
   // Current / most-recent work
@@ -63,13 +67,12 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['years of experience', 'years experience', 'total experience', 'work experience'], profileKey: 'yearsOfExperience' },
 
   // Work preferences
-  { keywords: ['desired title', 'desired job title', 'preferred title', 'desired role', 'preferred role'], profileKey: 'desiredJobTitle' },
-  { keywords: ['desired salary', 'expected salary', 'salary expectation', 'compensation', 'salary range', 'expected compensation', 'desired pay'], profileKey: 'desiredSalary' },
   { keywords: ['authorized to work', 'work authorization', 'legally authorized', 'eligible to work', 'right to work', 'authorization'], profileKey: 'workAuthorization' },
   { keywords: ['sponsorship', 'visa sponsorship', 'require sponsorship', 'need sponsorship', 'immigration sponsorship'], profileKey: 'sponsorshipNeeded' },
   { keywords: ['willing to relocate', 'open to relocation', 'relocate', 'relocation'], profileKey: 'willingToRelocate' },
-  { keywords: ['remote', 'work location preference', 'remote preference', 'on-site', 'onsite', 'hybrid', 'workplace type'], profileKey: 'remotePreference' },
-  { keywords: ['earliest start date', 'available to start', 'earliest available', 'when can you start', 'availability'], profileKey: 'earliestStartDate' },
+
+  // Files
+  { keywords: ['resume', 'cv', 'curriculum vitae', 'upload resume', 'resume/cv', 'upload cv', 'attach resume', 'attach cv', 'upload document', 'upload file'], profileKey: 'resume' },
 ];
 
 const US_STATES: Record<string, string> = {
@@ -90,6 +93,64 @@ const ABBR_TO_STATE: Record<string, string> = {};
 for (const [name, abbr] of Object.entries(US_STATES)) {
   ABBR_TO_STATE[abbr.toLowerCase()] = name;
 }
+
+// Common country code groups to allow two-way synonym matching
+const COUNTRY_SYNONYMS: string[][] = [
+  ['us', 'usa', 'united states', 'united states of america'],
+  ['uk', 'gb', 'great britain', 'united kingdom', 'united kingdom of great britain'],
+  ['uae', 'united arab emirates'],
+  ['in', 'india'],
+  ['ca', 'canada'],
+  ['au', 'australia'],
+  ['de', 'germany'],
+  ['fr', 'france'],
+  ['jp', 'japan'],
+  ['cn', 'china'],
+  ['kr', 'korea', 'south korea', 'korea south', 'republic of korea', 'korea republic of'],
+  ['br', 'brazil'],
+  ['mx', 'mexico'],
+  ['sg', 'singapore'],
+];
+
+// Maps phone country codes to country names/codes for matching dropdowns
+// that show "United States (+1)" or "US +1" etc.
+const PHONE_CODE_SYNONYMS: Record<string, string[]> = {
+  '+1': ['us', 'usa', 'united states', '1'],
+  '+44': ['uk', 'gb', 'united kingdom', '44'],
+  '+91': ['in', 'india', '91'],
+  '+61': ['au', 'australia', '61'],
+  '+49': ['de', 'germany', '49'],
+  '+33': ['fr', 'france', '33'],
+  '+81': ['jp', 'japan', '81'],
+  '+86': ['cn', 'china', '86'],
+  '+82': ['kr', 'south korea', 'korea', '82'],
+  '+55': ['br', 'brazil', '55'],
+  '+52': ['mx', 'mexico', '52'],
+  '+65': ['sg', 'singapore', '65'],
+  '+971': ['ae', 'uae', 'united arab emirates', '971'],
+  '+31': ['nl', 'netherlands', '31'],
+  '+46': ['se', 'sweden', '46'],
+  '+353': ['ie', 'ireland', '353'],
+  '+64': ['nz', 'new zealand', '64'],
+  '+48': ['pl', 'poland', '48'],
+  '+34': ['es', 'spain', '34'],
+  '+39': ['it', 'italy', '39'],
+  '+41': ['ch', 'switzerland', '41'],
+  '+972': ['il', 'israel', '972'],
+  '+47': ['no', 'norway', '47'],
+  '+45': ['dk', 'denmark', '45'],
+  '+358': ['fi', 'finland', '358'],
+  '+43': ['at', 'austria', '43'],
+  '+32': ['be', 'belgium', '32'],
+  '+63': ['ph', 'philippines', '63'],
+  '+60': ['my', 'malaysia', '60'],
+  '+66': ['th', 'thailand', '66'],
+  '+62': ['id', 'indonesia', '62'],
+  '+234': ['ng', 'nigeria', '234'],
+  '+27': ['za', 'south africa', '27'],
+  '+254': ['ke', 'kenya', '254'],
+  '+20': ['eg', 'egypt', '20'],
+};
 
 function normalizeForMatch(value: string): string {
   return value
@@ -112,8 +173,9 @@ function getTextFromAriaLabelledBy(element: HTMLElement): string {
   const parts: string[] = [];
   for (const id of ids.split(/\s+/)) {
     const target = document.getElementById(id);
-    if (target?.textContent) {
-      parts.push(target.textContent);
+    if (target?.textContent && !target.querySelector('input, select, textarea')) {
+      const txt = target.textContent.trim();
+      if (txt.length < 100) parts.push(txt);
     }
   }
   return parts.join(' ');
@@ -137,7 +199,12 @@ function getNearbyLabelText(element: HTMLElement): string {
         ['LABEL', 'SPAN', 'DIV', 'P', 'STRONG'].includes(sibling.tagName) &&
         sibling.textContent
       ) {
-        parts.push(sibling.textContent);
+        if (!sibling.querySelector('input, select, textarea')) {
+          const txt = sibling.textContent.trim();
+          if (txt.length > 0 && txt.length < 80) {
+            parts.push(txt);
+          }
+        }
       }
       sibling = sibling.previousElementSibling;
       hops += 1;
@@ -160,22 +227,21 @@ function getFieldIdentifiers(element: FillableElement): string {
   const parts: string[] = [];
   const htmlElement = element as HTMLElement;
 
+  // Collect direct attributes (NOT the current value — it can be stale from prior fills)
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     if (element.placeholder) parts.push(element.placeholder);
     if (element.name) parts.push(element.name);
-    if (element.value) parts.push(element.value);
   } else if (element instanceof HTMLSelectElement) {
     if (element.name) parts.push(element.name);
-    const selected = element.options[element.selectedIndex];
-    if (selected?.textContent) parts.push(selected.textContent);
   }
 
   if (htmlElement.id) parts.push(htmlElement.id);
 
+  // Explicit label[for] association — most reliable signal
   if (htmlElement.id) {
     const label = document.querySelector(`label[for="${CSS.escape(htmlElement.id)}"]`);
     if (label?.textContent) {
-      parts.push(label.textContent);
+      parts.push(label.textContent.trim());
     }
   }
 
@@ -185,13 +251,18 @@ function getFieldIdentifiers(element: FillableElement): string {
   const ariaLabelledByText = getTextFromAriaLabelledBy(htmlElement);
   if (ariaLabelledByText) parts.push(ariaLabelledByText);
 
+  // Wrapped inside a <label> tag
   const parentLabel = htmlElement.closest('label');
   if (parentLabel?.textContent) {
-    parts.push(parentLabel.textContent);
+    parts.push(parentLabel.textContent.trim());
   }
 
-  const nearbyLabel = getNearbyLabelText(htmlElement);
-  if (nearbyLabel) parts.push(nearbyLabel);
+  // Only use nearby label scanning as a last resort, and only if
+  // we don't already have strong signals from label[for] or aria
+  if (parts.length <= 1) {
+    const nearbyLabel = getNearbyLabelText(htmlElement);
+    if (nearbyLabel) parts.push(nearbyLabel);
+  }
 
   return parts.join(' ').toLowerCase();
 }
@@ -199,15 +270,42 @@ function getFieldIdentifiers(element: FillableElement): string {
 /**
  * Find matching profile key for the field.
  */
-function matchField(identifiers: string): ProfileFieldKey | null {
+function matchField(identifiers: string): ProfileFieldKey | 'resume' | null {
+  // Score each mapping: longer keyword match = more specific = higher priority
+  let bestKey: ProfileFieldKey | 'resume' | null = null;
+  let bestLen = 0;
+
+  // Detect fields that are clearly phone-related dropdowns (country code selectors)
+  const isPhoneCodeField = /country\s*code|phone\s*code|dial\s*code|calling\s*code|phone\s*prefix/i.test(identifiers);
+
   for (const mapping of FIELD_MAPPINGS) {
+    // Don't match 'address' on email fields ("email address")
+    if (
+      (mapping.profileKey === 'address' || mapping.profileKey === 'address2') &&
+      identifiers.includes('email')
+    ) {
+      continue;
+    }
+
+    // Don't match 'country' on phone country code fields — those get phoneCountryCode
+    if (mapping.profileKey === 'country' && isPhoneCodeField) {
+      continue;
+    }
+
+    // Don't match 'phone' on phone country code dropdowns — those get phoneCountryCode
+    if (mapping.profileKey === 'phone' && isPhoneCodeField) {
+      continue;
+    }
+
     for (const keyword of mapping.keywords) {
-      if (identifiers.includes(keyword)) {
-        return mapping.profileKey;
+      if (identifiers.includes(keyword) && keyword.length > bestLen) {
+        bestKey = mapping.profileKey;
+        bestLen = keyword.length;
       }
     }
   }
-  return null;
+
+  return bestKey;
 }
 
 function matchFallbackValue(identifiers: string): FallbackFieldValue | null {
@@ -273,8 +371,18 @@ function resolveWorkExperienceValue(
   const endDateLike = id.includes('to') || id.includes('end');
   const dateLike = id.includes('date') || id.includes('mm yyyy') || id.includes('month') || id.includes('year');
 
+  const isYearOnly = id.includes('year') && !id.includes('month');
+  const isMonthOnly = id.includes('month') && !id.includes('year');
+
   if (startDateLike || (dateLike && (id.includes('from') || id.includes('start')))) {
     if (startDate) {
+      const parts = startDate.split('/');
+      if (isYearOnly && parts.length === 2) {
+        return { value: parts[1], preferStateMatching: false };
+      }
+      if (isMonthOnly && parts.length === 2) {
+        return { value: parts[0], preferStateMatching: false };
+      }
       return { value: startDate, preferStateMatching: false };
     }
   }
@@ -284,6 +392,13 @@ function resolveWorkExperienceValue(
       return null;
     }
     if (endDate) {
+      const parts = endDate.split('/');
+      if (isYearOnly && parts.length === 2) {
+        return { value: parts[1], preferStateMatching: false };
+      }
+      if (isMonthOnly && parts.length === 2) {
+        return { value: parts[0], preferStateMatching: false };
+      }
       return { value: endDate, preferStateMatching: false };
     }
   }
@@ -402,6 +517,50 @@ function matchStateOption(options: HTMLOptionElement[], input: string): HTMLOpti
   return undefined;
 }
 
+// Yes/No fields (work auth, sponsorship, relocation) use varied phrasing on
+// different sites.  These lists let us match affirmative / negative intent.
+const YES_PATTERNS: RegExp[] = [
+  /\byes\b/i,
+  /\bauthorized\b/i,
+  /\beligible\b/i,
+  /\bi am\b/i,
+  /\bi do\b/i,
+  /\bi will\b/i,
+  /\bi can\b/i,
+  /\bwilling\b/i,
+  /\bopen to\b/i,
+];
+const NO_PATTERNS: RegExp[] = [
+  /\bno\b/i,
+  /\bnot authorized\b/i,
+  /\bnot eligible\b/i,
+  /\bi am not\b/i,
+  /\bi do not\b/i,
+  /\bi don'?t\b/i,
+  /\bnot willing\b/i,
+  /\bunwilling\b/i,
+  /\bnot open\b/i,
+];
+
+/**
+ * For Yes/No profile values, score how well a dropdown option expresses the
+ * matching intent.  Returns 0 (no match) or a positive score.
+ */
+function scoreYesNoOption(optionText: string, isYes: boolean): number {
+  const patterns = isYes ? YES_PATTERNS : NO_PATTERNS;
+  let score = 0;
+  for (const pattern of patterns) {
+    if (pattern.test(optionText)) score++;
+  }
+  return score;
+}
+
+/** Is the profile value a simple Yes/No? */
+function isYesNoValue(value: string): boolean {
+  const v = value.trim().toLowerCase();
+  return v === 'yes' || v === 'no';
+}
+
 function isPlaceholderText(text: string): boolean {
   const normalized = normalizeForMatch(text);
   if (!normalized) return true;
@@ -415,6 +574,7 @@ function isPlaceholderText(text: string): boolean {
   if (normalized === 'none') return true;
   if (normalized === '-') return true;
   if (normalized === '--') return true;
+  if (normalized === 'no selection') return true;
   return false;
 }
 
@@ -518,7 +678,9 @@ function addCandidate(
 ): void {
   if (!element) return;
   const html = element as HTMLElement;
-  if (!isElementVisible(html)) return;
+  const isFileInput = element instanceof HTMLInputElement && element.type === 'file';
+  // Exempt file inputs from visibility — sites routinely hide them
+  if (!isFileInput && !isElementVisible(html)) return;
   if (seen.has(html)) return;
   seen.add(html);
   list.push(element);
@@ -529,7 +691,7 @@ function collectFillableCandidates(): FillableElement[] {
   const seen = new Set<HTMLElement>();
 
   document.querySelectorAll<NativeFillable>(
-    'input[type="text"], input:not([type]), input[type=""], input[type="search"], input[type="email"], input[type="tel"], input[type="url"], input[type="number"], input[type="date"], input[type="month"], input[type="checkbox"], textarea, select'
+    'input[type="text"], input:not([type]), input[type=""], input[type="search"], input[type="email"], input[type="tel"], input[type="url"], input[type="number"], input[type="date"], input[type="month"], input[type="checkbox"], input[type="file"], textarea, select'
   ).forEach((element) => addCandidate(results, seen, element));
 
   document.querySelectorAll<HTMLElement>(CONTROL_SELECTOR).forEach((element) => {
@@ -577,6 +739,53 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
     return;
   }
 
+  // Try country synonyms
+  for (const group of COUNTRY_SYNONYMS) {
+    if (group.includes(normalizedValue)) {
+      for (const synonym of group) {
+        const synMatch = options.find((o) =>
+          normalizeForMatch(o.value) === synonym ||
+          normalizeForMatch(o.textContent || '') === synonym ||
+          normalizeForMatch(o.textContent || '').startsWith(synonym)
+        );
+        if (synMatch) {
+          select.value = synMatch.value;
+          return;
+        }
+      }
+    }
+  }
+
+  // Try phone code synonyms (e.g. "+1" matches "United States (+1)" or value="US")
+  const rawValue = value.trim();
+  const phoneSynonyms = PHONE_CODE_SYNONYMS[rawValue];
+  if (phoneSynonyms) {
+    // First try options whose text/value contains the dial code
+    const codeNum = rawValue.replace('+', '');
+    const codeMatch = options.find((o) => {
+      const text = o.textContent || '';
+      const val = o.value;
+      return text.includes(rawValue) || text.includes(codeNum) ||
+             val === rawValue || val === codeNum;
+    });
+    if (codeMatch) {
+      select.value = codeMatch.value;
+      return;
+    }
+    // Then try matching by country name
+    for (const synonym of phoneSynonyms) {
+      const synNorm = normalizeForMatch(synonym);
+      const synMatch = options.find((o) =>
+        normalizeForMatch(o.value) === synNorm ||
+        normalizeForMatch(o.textContent || '').includes(synNorm)
+      );
+      if (synMatch) {
+        select.value = synMatch.value;
+        return;
+      }
+    }
+  }
+
   const exactText = options.find((o) => normalizeForMatch(o.textContent || '') === normalizedValue);
   if (exactText) {
     select.value = exactText.value;
@@ -591,16 +800,24 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
     }
   }
 
+  // Try startsWith matching first
+  const startsWithMatch = options.find((o) => {
+    const optionText = normalizeForMatch(o.textContent || '');
+    return optionText.startsWith(normalizedValue) && normalizedValue.length >= 3;
+  });
+  if (startsWithMatch) {
+    select.value = startsWithMatch.value;
+    return;
+  }
+
+  // Only use partial matching when the candidate covers most of the option text
   const partial = options.find((o) => {
     const optionValue = normalizeForMatch(o.value);
     const optionText = normalizeForMatch(o.textContent || '');
     if (!optionValue && !optionText) return false;
-    return (
-      optionValue.includes(normalizedValue) ||
-      optionText.includes(normalizedValue) ||
-      normalizedValue.includes(optionValue) ||
-      normalizedValue.includes(optionText)
-    );
+    if (optionText.includes(normalizedValue) && normalizedValue.length >= optionText.length * 0.6) return true;
+    if (optionValue.includes(normalizedValue) && normalizedValue.length >= optionValue.length * 0.6) return true;
+    return false;
   });
   if (partial) {
     select.value = partial.value;
@@ -611,6 +828,27 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
   if (stateMatch) {
     select.value = stateMatch.value;
     return;
+  }
+
+  // Yes/No intent matching — for work auth, sponsorship, relocation dropdowns
+  // whose options use varied phrasing ("I am authorized to work...", etc.)
+  if (isYesNoValue(value)) {
+    const isYes = normalizedValue === 'yes';
+    let bestOption: HTMLOptionElement | undefined;
+    let bestScore = 0;
+    for (const option of options) {
+      const text = option.textContent || '';
+      if (isPlaceholderText(normalizeForMatch(text))) continue;
+      const score = scoreYesNoOption(text, isYes);
+      if (score > bestScore) {
+        bestScore = score;
+        bestOption = option;
+      }
+    }
+    if (bestOption) {
+      select.value = bestOption.value;
+      return;
+    }
   }
 
   select.value = value;
@@ -669,33 +907,83 @@ function buildCandidates(value: string, preferStateMatching: boolean): string[] 
     }
   }
 
+  // Add country synonyms
+  if (normalized) {
+    for (const group of COUNTRY_SYNONYMS) {
+      if (group.includes(normalized)) {
+        for (const synonym of group) {
+          candidates.add(synonym);
+        }
+      }
+    }
+  }
+
+  // Add phone code synonyms (e.g. "+1" -> "us", "united states", "1")
+  const rawValue = value.trim();
+  const phoneSynonyms = PHONE_CODE_SYNONYMS[rawValue];
+  if (phoneSynonyms) {
+    for (const synonym of phoneSynonyms) {
+      candidates.add(synonym);
+    }
+    // Also add the bare number without "+"
+    candidates.add(rawValue.replace('+', ''));
+  }
+
   return Array.from(candidates);
 }
 
 function findMatchingOption(options: HTMLElement[], candidates: string[]): HTMLElement | null {
   if (options.length === 0 || candidates.length === 0) return null;
 
+  // Pass 1: exact full-text match (highest confidence)
   for (const option of options) {
     const text = normalizeForMatch(getOptionText(option));
     if (!text) continue;
     if (candidates.includes(text)) return option;
   }
 
+  // Pass 2: option text STARTS WITH the candidate (e.g. "united states" matches "united states of america")
   for (const option of options) {
     const text = normalizeForMatch(getOptionText(option));
     if (!text) continue;
-    const tokens = text.split(' ').filter(Boolean);
-    if (candidates.some((candidate) => tokens.includes(candidate))) {
-      return option;
+    for (const candidate of candidates) {
+      if (candidate.length >= 3 && text.startsWith(candidate)) return option;
     }
   }
 
+  // Pass 3: candidate is fully contained in the option text, but only if the
+  // candidate is reasonably specific (>= 5 chars) AND the option doesn't have
+  // too much extra text (to avoid "United States Minor Outlying Islands" matching "United States")
   for (const option of options) {
     const text = normalizeForMatch(getOptionText(option));
     if (!text) continue;
-    if (candidates.some((candidate) => text.includes(candidate) || candidate.includes(text))) {
-      return option;
+    for (const candidate of candidates) {
+      if (candidate.length >= 5 && text.includes(candidate)) {
+        // Prefer options where the candidate covers most of the option text
+        if (candidate.length >= text.length * 0.6) {
+          return option;
+        }
+      }
     }
+  }
+
+  // Pass 4: Yes/No intent matching — for dropdowns with varied phrasing
+  // (e.g. "I am legally authorized to work in the United States")
+  const firstCandidate = candidates[0] || '';
+  if (isYesNoValue(firstCandidate)) {
+    const isYes = normalizeForMatch(firstCandidate) === 'yes';
+    let bestOption: HTMLElement | null = null;
+    let bestScore = 0;
+    for (const option of options) {
+      const text = getOptionText(option);
+      if (isPlaceholderText(normalizeForMatch(text))) continue;
+      const score = scoreYesNoOption(text, isYes);
+      if (score > bestScore) {
+        bestScore = score;
+        bestOption = option;
+      }
+    }
+    if (bestOption) return bestOption;
   }
 
   return null;
@@ -705,7 +993,7 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function syncReactValueTracker(element: HTMLInputElement | HTMLTextAreaElement, previousValue: string): void {
+function syncReactValueTracker(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, previousValue: string): void {
   const tracker = (element as unknown as { _valueTracker?: { setValue: (value: string) => void } })._valueTracker;
   if (tracker && typeof tracker.setValue === 'function') {
     tracker.setValue(previousValue);
@@ -792,16 +1080,40 @@ function resolveExperienceDateByPosition(
   return null;
 }
 
-function toMonthYearDigits(value: string): string {
+function getMaskedDateDigits(element: HTMLInputElement, value: string): string {
+  const hint = normalizeForMatch(
+    [
+      element.placeholder || '',
+      element.getAttribute('aria-label') || '',
+      element.getAttribute('name') || '',
+      element.getAttribute('id') || '',
+      getTextFromAriaLabelledBy(element),
+      getNearbyLabelText(element),
+    ].join(' ')
+  );
+
   const trimmed = value.trim();
+  let mm = '';
+  let yyyy = '';
+
   if (/^\d{4}$/.test(trimmed)) {
-    return `01${trimmed}`;
+    mm = '01';
+    yyyy = trimmed;
+  } else {
+    const mmYyyy = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
+    if (mmYyyy) {
+      mm = mmYyyy[1].padStart(2, '0');
+      yyyy = mmYyyy[2];
+    } else {
+      return trimmed.replace(/\D/g, '');
+    }
   }
-  const mmYyyy = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
-  if (mmYyyy) {
-    return `${mmYyyy[1].padStart(2, '0')}${mmYyyy[2]}`;
+
+  const requiresDay = hint.includes('dd') || hint.includes('day') || hint.includes('mm dd') || hint.includes('date');
+  if (requiresDay) {
+    return `${mm}01${yyyy}`;
   }
-  return trimmed.replace(/\D/g, '');
+  return `${mm}${yyyy}`;
 }
 
 async function typeIntoMaskedInput(element: HTMLInputElement, digits: string): Promise<void> {
@@ -841,7 +1153,10 @@ async function typeIntoMaskedInput(element: HTMLInputElement, digits: string): P
 
   if (!/^\d{1,2}\/\d{4}$/.test(element.value.trim()) && digits.length >= 6) {
     const mm = digits.slice(0, 2);
-    const yyyy = digits.slice(2, 6);
+    let yyyy = digits.slice(2, 6);
+    if (digits.length >= 8) {
+      yyyy = digits.slice(4, 8);
+    }
     const forced = `${mm}/${yyyy}`;
     const before = element.value;
     if (nativeInputValueSetter) {
@@ -900,41 +1215,133 @@ function commitFocusOut(element: HTMLElement): void {
   element.dispatchEvent(new Event('focusout', { bubbles: true }));
 }
 
-async function fillComboboxInput(
+function getSearchTexts(value: string, preferStateMatching: boolean): string[] {
+  const texts: string[] = [value];
+  const normalized = normalizeForMatch(value);
+
+  // Add country synonyms as alternative search strings
+  for (const group of COUNTRY_SYNONYMS) {
+    if (group.includes(normalized)) {
+      for (const synonym of group) {
+        if (synonym !== normalized && synonym.length > 2) {
+          texts.push(synonym);
+        }
+      }
+      break;
+    }
+  }
+
+  // Add state name/abbreviation alternatives
+  if (preferStateMatching) {
+    const stateAbbr = US_STATES[normalized];
+    if (stateAbbr) texts.push(stateAbbr);
+    const stateName = ABBR_TO_STATE[normalized];
+    if (stateName) texts.push(stateName);
+  }
+
+  // Add phone code synonyms as search text (e.g. "+1" -> type "United States")
+  const rawValue = value.trim();
+  const phoneSynonyms = PHONE_CODE_SYNONYMS[rawValue];
+  if (phoneSynonyms) {
+    // Add the longest synonym first (country name) as it's best for search
+    const sorted = [...phoneSynonyms].sort((a, b) => b.length - a.length);
+    for (const synonym of sorted) {
+      if (synonym.length > 2) texts.push(synonym);
+    }
+  }
+
+  return texts;
+}
+
+function clickOption(option: HTMLElement): void {
+  // Full pointer → mouse → click sequence that frameworks expect
+  option.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+  option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  option.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+  option.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+  option.click();
+}
+
+/**
+ * After an option is clicked in a dropdown, confirm & close it.
+ * Many frameworks need Escape or blur on the *input/trigger* to commit.
+ */
+async function confirmDropdownSelection(trigger: HTMLElement): Promise<void> {
+  await delay(60);
+
+  // Escape key closes most dropdown implementations (React Select, Headless UI, Radix, Workday)
+  trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+  trigger.dispatchEvent(new KeyboardEvent('keyup',   { key: 'Escape', code: 'Escape', bubbles: true }));
+  await delay(30);
+
+  // Fire change so frameworks register the new value
+  trigger.dispatchEvent(new Event('change', { bubbles: true }));
+
+  // Blur to finalize — some frameworks commit on focusout
+  commitFocusOut(trigger);
+}
+
+async function typeAndMatch(
   element: HTMLInputElement | HTMLTextAreaElement,
-  value: string,
+  searchText: string,
+  candidates: string[],
   preferStateMatching: boolean
 ): Promise<boolean> {
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
   const nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
 
-  element.focus();
-  element.click();
   const previousValue = element.value;
-
   if (element instanceof HTMLInputElement && nativeInputValueSetter) {
-    nativeInputValueSetter.call(element, value);
+    nativeInputValueSetter.call(element, searchText);
   } else if (element instanceof HTMLTextAreaElement && nativeTextareaValueSetter) {
-    nativeTextareaValueSetter.call(element, value);
+    nativeTextareaValueSetter.call(element, searchText);
   } else {
-    element.value = value;
+    element.value = searchText;
   }
-
   syncReactValueTracker(element, previousValue);
-  dispatchTextInputEvents(element, value);
-  await delay(150);
+  dispatchTextInputEvents(element, searchText);
+
+  // Wait for dropdown options to populate — some sites are slow (Workday, iCIMS)
+  await delay(250);
 
   const listId = element.getAttribute('aria-controls');
   const listRoot = listId ? document.getElementById(listId) || undefined : undefined;
-  const options = findVisibleOptions(listRoot);
-  const match = findMatchingOption(options, buildCandidates(value, preferStateMatching));
-  if (match) {
-    match.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    match.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-    match.click();
-    return true;
+  let options = findVisibleOptions(listRoot);
+  let match = findMatchingOption(options, candidates);
+
+  // Retry once if no match found (some sites need more time)
+  if (!match) {
+    await delay(200);
+    options = findVisibleOptions(listRoot);
+    match = findMatchingOption(options, candidates);
   }
 
+  if (match) {
+    clickOption(match);
+    await confirmDropdownSelection(element);
+    return true;
+  }
+  return false;
+}
+
+async function fillComboboxInput(
+  element: HTMLInputElement | HTMLTextAreaElement,
+  value: string,
+  preferStateMatching: boolean
+): Promise<boolean> {
+  element.focus();
+  element.click();
+
+  const candidates = buildCandidates(value, preferStateMatching);
+  const searchTexts = getSearchTexts(value, preferStateMatching);
+
+  // Try each search text variant (e.g. "US" then "United States" then "United States of America")
+  for (const searchText of searchTexts) {
+    const found = await typeAndMatch(element, searchText, candidates, preferStateMatching);
+    if (found) return true;
+  }
+
+  // No option matched — press Enter as a last resort (some sites accept typed text)
   element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
   return false;
@@ -947,27 +1354,35 @@ async function fillDropdownTrigger(
 ): Promise<boolean> {
   element.focus();
   element.click();
-  await delay(180);
+  await delay(250);
 
   const listId = element.getAttribute('aria-controls');
   const listRoot = listId ? document.getElementById(listId) || undefined : undefined;
+  const candidates = buildCandidates(value, preferStateMatching);
   let options = findVisibleOptions(listRoot);
-  let match = findMatchingOption(options, buildCandidates(value, preferStateMatching));
+  let match = findMatchingOption(options, candidates);
 
+  // If no immediate match, try typing into a nested search input
   if (!match) {
     const nestedInput = element.querySelector<HTMLInputElement>('input[type="text"], input[type="search"]');
     if (nestedInput) {
       const selected = await fillComboboxInput(nestedInput, value, preferStateMatching);
       if (selected) return true;
       options = findVisibleOptions(listRoot);
-      match = findMatchingOption(options, buildCandidates(value, preferStateMatching));
+      match = findMatchingOption(options, candidates);
     }
   }
 
+  // Retry after extra wait — some dropdowns load asynchronously
+  if (!match) {
+    await delay(200);
+    options = findVisibleOptions(listRoot);
+    match = findMatchingOption(options, candidates);
+  }
+
   if (match) {
-    match.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    match.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-    match.click();
+    clickOption(match);
+    await confirmDropdownSelection(element);
     return true;
   }
 
@@ -984,7 +1399,13 @@ async function setFieldValue(element: FillableElement, value: string, preferStat
   const nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
 
   if (element instanceof HTMLSelectElement) {
+    element.focus();
+    const previousValue = element.value;
     setSelectValue(element, value, preferStateMatching);
+    syncReactValueTracker(element, previousValue);
+    // Full event sequence that React and other frameworks listen to
+    element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
     commitFocusOut(element);
@@ -1007,9 +1428,9 @@ async function setFieldValue(element: FillableElement, value: string, preferStat
     }
 
     if (element instanceof HTMLInputElement && isMonthYearMaskedInput(element)) {
-      const digits = toMonthYearDigits(value);
+      const digits = getMaskedDateDigits(element, value);
       if (digits.length >= 6) {
-        await typeIntoMaskedInput(element, digits.slice(0, 6));
+        await typeIntoMaskedInput(element, digits);
         commitFocusOut(element);
         return;
       }
@@ -1052,9 +1473,12 @@ async function setFieldValue(element: FillableElement, value: string, preferStat
   }
 
   if (isDropdownTriggerElement(element)) {
-    await fillDropdownTrigger(element, value, preferStateMatching);
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-    commitFocusOut(element);
+    const selected = await fillDropdownTrigger(element, value, preferStateMatching);
+    if (!selected) {
+      // fillDropdownTrigger already confirms on success; only commit manually on failure
+      element.dispatchEvent(new Event('change', { bubbles: true }));
+      commitFocusOut(element);
+    }
   }
 }
 
@@ -1073,22 +1497,146 @@ function flashHighlight(element: HTMLElement): void {
 }
 
 /**
+ * Inject a resume file into an <input type="file"> and trigger the site's
+ * upload handler.  Uses multiple strategies since sites vary widely.
+ */
+async function injectResumeFile(input: HTMLInputElement, file: File): Promise<boolean> {
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+
+    // Full event sequence — mimic what a real file-picker does
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await delay(80);
+
+    // If that didn't take, try dropping on the nearest visible upload zone
+    if (!didFileRegister(input)) {
+      const dropZone = findNearestDropZone(input);
+      if (dropZone) {
+        await simulateFileDrop(dropZone, file);
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('[STS] Failed to inject resume file via input:', err);
+    // Last resort: try drop zone even if the DataTransfer approach threw
+    const dropZone = findNearestDropZone(input);
+    if (dropZone) {
+      try {
+        await simulateFileDrop(dropZone, file);
+        return true;
+      } catch {
+        // fall through
+      }
+    }
+    return false;
+  }
+}
+
+/** Check if the file input actually has a file set after injection */
+function didFileRegister(input: HTMLInputElement): boolean {
+  return !!(input.files && input.files.length > 0);
+}
+
+/**
+ * Find the closest visible upload/drop zone near a file input.
+ * Sites wrap file inputs in styled containers that listen for drop events.
+ */
+function findNearestDropZone(fileInput: HTMLElement): HTMLElement | null {
+  // Walk up from the file input looking for a visible drop-zone container
+  const candidates: HTMLElement[] = [];
+  let el: HTMLElement | null = fileInput.parentElement;
+  let depth = 0;
+  while (el && depth < 6) {
+    if (isElementVisible(el)) {
+      const cls = (el.className || '').toString().toLowerCase();
+      const text = (el.textContent || '').toLowerCase();
+      const hasDropHint =
+        cls.includes('upload') || cls.includes('drop') || cls.includes('file') ||
+        cls.includes('attach') || cls.includes('resume') || cls.includes('dz-') ||
+        el.hasAttribute('data-dropzone') ||
+        (text.includes('drag') && text.includes('drop')) ||
+        (text.includes('upload') && text.length < 200) ||
+        (text.includes('attach') && text.includes('resume'));
+      if (hasDropHint) {
+        candidates.push(el);
+      }
+    }
+    el = el.parentElement;
+    depth++;
+  }
+
+  // Also search siblings and nearby elements for standalone drop zones
+  if (candidates.length === 0) {
+    document.querySelectorAll<HTMLElement>(
+      '[class*="upload"], [class*="drop-zone"], [class*="dropzone"], [class*="file-upload"], [class*="resume"], [data-dropzone]'
+    ).forEach((zone) => {
+      if (isElementVisible(zone)) candidates.push(zone);
+    });
+  }
+
+  return candidates[0] || null;
+}
+
+/**
+ * Simulate a file drop on an element — triggers the full drag-and-drop sequence.
+ */
+async function simulateFileDrop(target: HTMLElement, file: File): Promise<void> {
+  const dt = new DataTransfer();
+  dt.items.add(file);
+
+  const common = { bubbles: true, cancelable: true, dataTransfer: dt };
+
+  target.dispatchEvent(new DragEvent('dragenter', common));
+  target.dispatchEvent(new DragEvent('dragover', common));
+  await delay(50);
+  target.dispatchEvent(new DragEvent('drop', common));
+  target.dispatchEvent(new DragEvent('dragleave', common));
+  await delay(100);
+
+  // Some frameworks also check for an input change event after drop
+  const innerInput = target.querySelector<HTMLInputElement>('input[type="file"]');
+  if (innerInput) {
+    try {
+      const innerDt = new DataTransfer();
+      innerDt.items.add(file);
+      innerInput.files = innerDt.files;
+      innerInput.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch {
+      // inner input might be locked
+    }
+  }
+}
+
+/**
  * Detect all fillable fields on the page and fill them sequentially.
  */
 export async function detectAndFill(profile: UserProfile): Promise<number> {
   const inputs = collectFillableCandidates();
-  const matched: Array<{ el: FillableElement; value: string; preferStateMatching: boolean }> = [];
+  const matched: Array<{ el: FillableElement; value: string; preferStateMatching: boolean; isResume?: boolean }> = [];
+  let hasFilledPhone = false;
+  let hasFilledResume = false;
+  let resumeFile: File | null | undefined = undefined; // Lazy load if needed
 
   for (const input of inputs) {
     const html = input as HTMLElement;
-    if (!isElementVisible(html)) continue;
+    const isFileInput = input instanceof HTMLInputElement && input.type === 'file';
+
+    // Exempt file inputs from visibility checks — most sites hide them with
+    // display:none and trigger them via a styled button / drag-drop area.
+    if (!isFileInput && !isElementVisible(html)) continue;
     if (html.hasAttribute('disabled')) continue;
 
     if (input instanceof HTMLInputElement && input.readOnly && !isComboboxInput(input)) {
       continue;
     }
 
-    if (shouldSkipBecauseAlreadyFilled(input)) {
+    // Don't skip file inputs that already have files — we only fill empty ones
+    if (isFileInput) {
+      if ((input as HTMLInputElement).files && (input as HTMLInputElement).files!.length > 0) continue;
+    } else if (shouldSkipBecauseAlreadyFilled(input)) {
       continue;
     }
 
@@ -1114,17 +1662,38 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
 
     if (!value) {
       const profileKey = matchField(identifiers);
-      if (profileKey) {
-        // Do not let generic earliest start date override experience From/To fields.
-        if (
-          profileKey === 'earliestStartDate' &&
-          (normalizedIdentifiers.includes('from') || normalizedIdentifiers.includes('to') || normalizedIdentifiers.includes('currently work'))
-        ) {
-          value = '';
-        } else {
-          value = profile[profileKey].trim();
-          preferStateMatching = profileKey === 'state';
+
+      if (profileKey === 'resume') {
+        if (input instanceof HTMLInputElement && input.type === 'file' && !hasFilledResume && profile.hasResume) {
+          hasFilledResume = true;
+          matched.push({ el: input, value: 'resume', preferStateMatching: false, isResume: true });
         }
+        continue; // Skip further value matching since this is a file upload
+      }
+      
+      if (profileKey === 'phone') {
+        // For select/combobox/dropdown elements near phone fields, fill with country code
+        const isSelectOrCombobox = input instanceof HTMLSelectElement ||
+           isDropdownTriggerElement(input);
+
+        if (isSelectOrCombobox) {
+          // This is a country code selector — fill with phoneCountryCode instead
+          const code = (profile.phoneCountryCode || '').trim();
+          if (code) {
+            value = code;
+          }
+          // Don't count this as having filled the phone number
+          matched.push({ el: input, value, preferStateMatching: false });
+          continue;
+        }
+        if (hasFilledPhone) {
+          continue; // Skip duplicate phone fields
+        }
+      }
+      if (profileKey) {
+        if (profileKey === 'phone') hasFilledPhone = true;
+        value = String(profile[profileKey as ProfileFieldKey] || '').trim();
+        preferStateMatching = profileKey === 'state';
       }
     }
 
@@ -1136,20 +1705,86 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
       }
     }
 
+    // Fallback for file inputs: if this is a file input and we have a resume,
+    // fill it even if keywords didn't match (most file inputs on job sites are for resumes)
+    if (!value && !hasFilledResume && profile.hasResume &&
+        input instanceof HTMLInputElement && input.type === 'file') {
+      hasFilledResume = true;
+      matched.push({ el: input, value: 'resume', preferStateMatching: false, isResume: true });
+      continue;
+    }
+
     if (!value) continue;
 
     matched.push({ el: input, value, preferStateMatching });
   }
 
-  for (const { el, value, preferStateMatching } of matched) {
+  // If no file input was found but we have a resume, scan for standalone drop zones
+  if (!hasFilledResume && profile.hasResume) {
+    const dropZone = findStandaloneDropZone();
+    if (dropZone) {
+      hasFilledResume = true;
+      matched.push({ el: dropZone as unknown as FillableElement, value: 'resume', preferStateMatching: false, isResume: true });
+    }
+  }
+
+  for (const { el, value, preferStateMatching, isResume } of matched) {
     const html = el as HTMLElement;
     html.scrollIntoView({ behavior: 'smooth', block: 'center' });
     await delay(120);
     html.focus();
-    await setFieldValue(el, value, preferStateMatching);
-    flashHighlight(html);
+
+    if (isResume) {
+      if (resumeFile === undefined) {
+        resumeFile = await getResumeFile() || null;
+      }
+      if (resumeFile) {
+        if (el instanceof HTMLInputElement && el.type === 'file') {
+          const uploaded = await injectResumeFile(el, resumeFile);
+          if (uploaded) flashHighlight(html);
+        } else {
+          // Drop zone element (not a file input)
+          await simulateFileDrop(html, resumeFile);
+          flashHighlight(html);
+        }
+      }
+    } else {
+      await setFieldValue(el, value, preferStateMatching);
+      flashHighlight(html);
+    }
+
     await delay(140);
   }
 
   return matched.length;
+}
+
+/**
+ * Find a visible upload/drop zone on the page that isn't associated with any file input.
+ * These are standalone drag-drop areas some sites use instead of file inputs.
+ */
+function findStandaloneDropZone(): HTMLElement | null {
+  const selectors = [
+    '[class*="dropzone"]',
+    '[class*="drop-zone"]',
+    '[class*="file-upload"]',
+    '[class*="resume-upload"]',
+    '[class*="upload-area"]',
+    '[class*="attach-resume"]',
+    '[data-dropzone]',
+    '[class*="dz-default"]',
+  ];
+
+  for (const selector of selectors) {
+    const zones = Array.from(document.querySelectorAll<HTMLElement>(selector));
+    for (const zone of zones) {
+      if (!isElementVisible(zone)) continue;
+      const text = (zone.textContent || '').toLowerCase();
+      if (text.includes('resume') || text.includes('cv') || text.includes('upload') ||
+          text.includes('attach') || text.includes('drag') || text.includes('drop')) {
+        return zone;
+      }
+    }
+  }
+  return null;
 }
