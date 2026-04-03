@@ -1,5 +1,5 @@
 {
-  "name": "stop-the-sequence-",
+  "name": "skip-the-sequence",
   "version": "1.0.0",
   "description": "Auto-fill job application forms to save time while applying for jobs.",
   "main": "index.js",

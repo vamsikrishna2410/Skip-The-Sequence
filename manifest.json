@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Stop The Sequence",
+  "name": "Skip The Sequence",
   "version": "1.0.0",
   "description": "Auto-fill job application forms to save time while applying for jobs.",
   "permissions": [

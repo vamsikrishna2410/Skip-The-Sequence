@@ -8,11 +8,31 @@ import { detectAndFill } from './detector';
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message && typeof message === 'object' && message.action === 'fillForm') {
     handleFill()
-      .then((result) => sendResponse(result))
-      .catch(() => sendResponse({ success: false, filledCount: 0, error: 'Something went wrong. Please refresh and try again.' }));
+      .then((result) => {
+        // If we're inside an iframe and found nothing, don't respond —
+        // let the main frame's response reach the popup instead of
+        // winning the race with a misleading "0 fields" result.
+        if (result.filledCount === 0 && !isTopFrame()) {
+          return; // intentionally never call sendResponse
+        }
+        sendResponse(result);
+      })
+      .catch(() => {
+        if (isTopFrame()) {
+          sendResponse({ success: false, filledCount: 0, error: 'Something went wrong. Please refresh and try again.' });
+        }
+      });
     return true; // async response
   }
 });
+
+function isTopFrame(): boolean {
+  try {
+    return window === window.top;
+  } catch {
+    return false; // cross-origin iframe
+  }
+}
 
 async function handleFill(): Promise<{ success: boolean; filledCount: number; error?: string }> {
   const profile = await getProfile();

@@ -22,6 +22,24 @@ export const EMPTY_EXPERIENCE: WorkExperience = {
   description: '',
 };
 
+export interface Education {
+  school: string;
+  degree: string;
+  fieldOfStudy: string;
+  gpa: string;
+  startDate: string; // MM/YYYY
+  endDate: string;   // MM/YYYY
+}
+
+export const EMPTY_EDUCATION: Education = {
+  school: '',
+  degree: '',
+  fieldOfStudy: '',
+  gpa: '',
+  startDate: '',
+  endDate: '',
+};
+
 export interface UserProfile {
   // Personal
   firstName: string;
@@ -29,9 +47,11 @@ export interface UserProfile {
   email: string;
   phoneCountryCode: string;
   phone: string;
+  phoneDeviceType: string;
   address: string;
   address2: string;
   city: string;
+  county: string;
   state: string;
   zipCode: string;
   country: string;
@@ -44,8 +64,20 @@ export interface UserProfile {
 
   // Work preferences (auto-fill targets)
   workAuthorization: string;
+  citizenshipStatus: string;
   sponsorshipNeeded: string;
   willingToRelocate: string;
+  previouslyEmployed: string;
+  desiredSalary: string;
+  relatedToEmployee: string;
+  desiredStartDate: string;
+
+  // Voluntary disclosures
+  gender: string;
+  hispanicOrLatino: string;
+  raceEthnicity: string;
+  veteranStatus: string;
+  disabilityStatus: string;
 
   // File Attachments
   hasResume?: boolean;
@@ -54,12 +86,13 @@ export interface UserProfile {
     lastUpdated: number;
   };
 
-  // Work history entries
+  // Education & Work history entries
+  educations: Education[];
   workExperiences: WorkExperience[];
 }
 
 // Keys that map to simple string fields (used by detector)
-export type ProfileFieldKey = Exclude<keyof UserProfile, 'workExperiences' | 'hasResume' | 'resumeMetadata'>;
+export type ProfileFieldKey = Exclude<keyof UserProfile, 'educations' | 'workExperiences' | 'hasResume' | 'resumeMetadata'>;
 
 export const EMPTY_PROFILE: UserProfile = {
   firstName: '',
@@ -67,9 +100,11 @@ export const EMPTY_PROFILE: UserProfile = {
   email: '',
   phoneCountryCode: '',
   phone: '',
+  phoneDeviceType: '',
   address: '',
   address2: '',
   city: '',
+  county: '',
   state: '',
   zipCode: '',
   country: '',
@@ -78,8 +113,19 @@ export const EMPTY_PROFILE: UserProfile = {
   company: '',
   yearsOfExperience: '',
   workAuthorization: '',
+  citizenshipStatus: '',
   sponsorshipNeeded: '',
   willingToRelocate: '',
+  previouslyEmployed: '',
+  desiredSalary: '',
+  relatedToEmployee: '',
+  desiredStartDate: '',
+  gender: '',
+  hispanicOrLatino: '',
+  raceEthnicity: '',
+  veteranStatus: '',
+  disabilityStatus: '',
   hasResume: false,
+  educations: [],
   workExperiences: [],
 };

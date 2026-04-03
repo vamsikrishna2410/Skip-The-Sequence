@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stop The Sequence — Profile</title>
+  <title>Skip The Sequence — Profile</title>
   <style>
     * {
       margin: 0;
@@ -16,24 +16,18 @@
       background: #F5F0E8;
       color: #2C2420;
       min-height: 100vh;
+      padding-bottom: 72px; /* room for sticky bar */
     }
 
+    /* ── Top bar ─────────────────────────────── */
     .topbar {
       background: #2C2420;
       color: #F5F0E8;
-      padding: 20px 0 16px;
+      padding: 20px 0 0;
       text-align: center;
-      position: relative;
-    }
-
-    .topbar::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #C8102E, #B8860B, #1D4289, #B8860B, #C8102E);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     .topbar h1 {
@@ -49,14 +43,101 @@
       margin-top: 4px;
     }
 
+    /* ── Section jump nav ────────────────────── */
+    .section-nav {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      padding: 10px 0 0;
+      background: #2C2420;
+    }
+
+    .section-nav a {
+      color: #B8A99A;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 8px 16px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .section-nav a:hover,
+    .section-nav a.active {
+      color: #F5F0E8;
+      border-bottom-color: #B8860B;
+    }
+
+    /* ── Progress bar ────────────────────────── */
+    .progress-bar-container {
+      height: 3px;
+      background: linear-gradient(90deg, #C8102E, #B8860B, #1D4289, #B8860B, #C8102E);
+      position: relative;
+    }
+
+    .progress-bar-track {
+      height: 3px;
+      background: #3a3330;
+      width: 100%;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #B8860B, #1D4289);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Container ───────────────────────────── */
     .container {
       max-width: 640px;
       margin: 0 auto;
-      padding: 32px 24px;
+      padding: 24px 24px 32px;
     }
 
+    /* ── Sections ─────────────────────────────── */
     .section {
-      margin-bottom: 32px;
+      margin-bottom: 24px;
+      background: #FFFDF8;
+      border: 1px solid #D5CBBF;
+      border-radius: 8px;
+      overflow: hidden;
+      scroll-margin-top: 100px; /* clear the sticky topbar + nav */
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .section-header:hover {
+      background: rgba(184, 134, 11, 0.04);
+    }
+
+    .section-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-chevron {
+      font-size: 12px;
+      color: #7A6F65;
+      transition: transform 0.2s;
+      display: inline-block;
+      width: 14px;
+    }
+
+    .section.collapsed .section-chevron {
+      transform: rotate(-90deg);
     }
 
     .section-title {
@@ -65,11 +146,33 @@
       color: #7A6F65;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #D5CBBF;
     }
 
+    .section-badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: #7A6F65;
+      background: #EDE8E0;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .section-badge.complete {
+      background: #166534;
+      color: #fff;
+    }
+
+    .section-body {
+      padding: 0 20px 20px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+    }
+
+    .section.collapsed .section-body {
+      display: none;
+    }
+
+    /* ── Fields ───────────────────────────────── */
     .field-group {
       margin-bottom: 14px;
     }
@@ -111,6 +214,23 @@
       box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.15);
     }
 
+    .field-group input.invalid,
+    .field-group input.invalid:focus {
+      border-color: #C8102E;
+      box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.12);
+    }
+
+    .field-error {
+      font-size: 11px;
+      color: #C8102E;
+      margin-top: 3px;
+      display: none;
+    }
+
+    .field-group input.invalid + .field-error {
+      display: block;
+    }
+
     .row {
       display: flex;
       gap: 12px;
@@ -141,9 +261,9 @@
       letter-spacing: 0;
     }
 
-    /* Experience entry card */
+    /* ── Experience entry card ────────────────── */
     .experience-entry {
-      background: #FFFDF8;
+      background: #F5F0E8;
       border: 1px solid #D5CBBF;
       border-radius: 8px;
       padding: 20px;
@@ -195,7 +315,6 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      margin-bottom: 16px;
     }
 
     .btn-add-entry:hover {
@@ -204,14 +323,122 @@
       background: rgba(29, 66, 137, 0.04);
     }
 
-    .actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
+    /* ── Resume upload area ───────────────────── */
+    .resume-dropzone {
+      border: 2px dashed #D5CBBF;
+      border-radius: 8px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #F5F0E8;
+      position: relative;
     }
 
-    .btn {
-      padding: 12px 32px;
+    .resume-dropzone:hover,
+    .resume-dropzone.dragover {
+      border-color: #1D4289;
+      background: rgba(29, 66, 137, 0.04);
+    }
+
+    .resume-dropzone-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #7A6F65;
+    }
+
+    .resume-dropzone-text {
+      font-size: 13px;
+      color: #7A6F65;
+      font-weight: 500;
+    }
+
+    .resume-dropzone-hint {
+      font-size: 11px;
+      color: #B8A99A;
+      margin-top: 4px;
+    }
+
+    .resume-dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .resume-info {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: #F5F0E8;
+      border: 1px solid #D5CBBF;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    .resume-info.visible {
+      display: flex;
+    }
+
+    .resume-info-icon {
+      font-size: 24px;
+    }
+
+    .resume-info-details {
+      flex: 1;
+    }
+
+    .resume-info-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #2C2420;
+    }
+
+    .resume-info-meta {
+      font-size: 11px;
+      color: #7A6F65;
+      margin-top: 2px;
+    }
+
+    .btn-remove-resume {
+      background: none;
+      border: 1px solid #D5CBBF;
+      color: #C8102E;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-remove-resume:hover {
+      background: #C8102E;
+      color: #FFFDF8;
+      border-color: #C8102E;
+    }
+
+    /* ── Sticky bottom bar ───────────────────── */
+    .sticky-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #2C2420;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 100;
+      box-shadow: 0 -2px 12px rgba(44, 36, 32, 0.2);
+    }
+
+    .sticky-bar .btn-save {
+      background: #1D4289;
+      color: #FFFDF8;
+      padding: 10px 36px;
       border: none;
       border-radius: 5px;
       font-size: 14px;
@@ -221,166 +448,356 @@
       letter-spacing: 0.3px;
     }
 
-    .btn:hover {
+    .sticky-bar .btn-save:hover {
+      background: #153268;
       transform: translateY(-1px);
-      box-shadow: 0 3px 10px rgba(44, 36, 32, 0.15);
+      box-shadow: 0 3px 10px rgba(29, 66, 137, 0.3);
     }
 
-    .btn:active {
+    .sticky-bar .btn-save:active {
       transform: translateY(0);
     }
 
-    .btn-save {
-      background: #1D4289;
-      color: #FFFDF8;
-    }
-
-    .btn-save:hover {
-      background: #153268;
-    }
-
-    .status {
-      margin-top: 16px;
-      font-size: 13px;
-      min-height: 20px;
+    .sticky-bar .status {
+      font-size: 12px;
       color: #B8860B;
       font-weight: 600;
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .sticky-bar .last-saved {
+      font-size: 11px;
+      color: #B8A99A;
     }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <h1>Stop The Sequence</h1>
+    <h1>Skip The Sequence</h1>
     <p>Manage your profile</p>
+    <nav class="section-nav">
+      <a href="#section-personal" data-nav="personal">Personal</a>
+      <a href="#section-work" data-nav="work">Work Prefs</a>
+      <a href="#section-disclosures" data-nav="disclosures">Disclosures</a>
+      <a href="#section-resume" data-nav="resume">Resume</a>
+      <a href="#section-education" data-nav="education">Education</a>
+      <a href="#section-experience" data-nav="experience">Experience</a>
+    </nav>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
   </div>
 
   <div class="container">
 
     <!-- Personal Information -->
-    <div class="section">
-      <div class="section-title">Personal Information</div>
-      <div class="row">
-        <div class="field-group">
-          <label>First Name</label>
-          <input type="text" id="firstName">
+    <div class="section" id="section-personal" data-section="personal">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-chevron">&#9660;</span>
+          <span class="section-title">Personal Information</span>
         </div>
-        <div class="field-group">
-          <label>Last Name</label>
-          <input type="text" id="lastName">
-        </div>
+        <span class="section-badge" data-badge="personal"></span>
       </div>
-      <div class="field-group">
-        <label>Email</label>
-        <input type="email" id="email">
-      </div>
-      <div class="row">
-        <div class="field-group" style="flex: 0 0 120px;">
-          <label>Country Code</label>
-          <input type="text" id="phoneCountryCode" placeholder="+1">
+      <div class="section-body">
+        <div class="row">
+          <div class="field-group">
+            <label>First Name</label>
+            <input type="text" id="firstName">
+          </div>
+          <div class="field-group">
+            <label>Last Name</label>
+            <input type="text" id="lastName">
+          </div>
         </div>
         <div class="field-group">
-          <label>Phone</label>
-          <input type="tel" id="phone">
+          <label>Email</label>
+          <input type="email" id="email" data-validate="email">
+          <div class="field-error">Please enter a valid email address</div>
         </div>
-      </div>
-      <div class="field-group">
-        <label>Address Line 1</label>
-        <input type="text" id="address">
-      </div>
-      <div class="field-group">
-        <label>Address Line 2</label>
-        <input type="text" id="address2">
-      </div>
-      <div class="row">
-        <div class="field-group">
-          <label>City</label>
-          <input type="text" id="city">
-        </div>
-        <div class="field-group">
-          <label>State</label>
-          <input type="text" id="state">
-        </div>
-        <div class="field-group">
-          <label>Zip Code</label>
-          <input type="text" id="zipCode">
+        <div class="row">
+          <div class="field-group" style="flex: 0 0 120px;">
+            <label>Country Code</label>
+            <input type="text" id="phoneCountryCode" placeholder="+1">
+          </div>
+          <div class="field-group">
+            <label>Phone</label>
+            <input type="tel" id="phone" data-validate="phone">
+            <div class="field-error">Phone should contain only digits</div>
+          </div>
+          <div class="field-group" style="flex: 0 0 130px;">
+            <label>Device Type</label>
+            <select id="phoneDeviceType">
+              <option value="">Select...</option>
+              <option value="Mobile">Mobile</option>
+              <option value="Landline">Landline</option>
+            </select>
+          </div>
         </div>
         <div class="field-group">
-          <label>Country</label>
-          <input type="text" id="country">
+          <label>Address Line 1</label>
+          <input type="text" id="address">
         </div>
-      </div>
-      <div class="field-group">
-        <label>LinkedIn URL</label>
-        <input type="url" id="linkedinUrl">
+        <div class="field-group">
+          <label>Address Line 2</label>
+          <input type="text" id="address2">
+        </div>
+        <div class="row">
+          <div class="field-group">
+            <label>City</label>
+            <input type="text" id="city">
+          </div>
+          <div class="field-group">
+            <label>County</label>
+            <input type="text" id="county">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field-group">
+            <label>State</label>
+            <input type="text" id="state">
+          </div>
+          <div class="field-group">
+            <label>Zip Code</label>
+            <input type="text" id="zipCode" data-validate="zip">
+            <div class="field-error">Enter a valid zip code</div>
+          </div>
+          <div class="field-group">
+            <label>Country</label>
+            <input type="text" id="country">
+          </div>
+        </div>
+        <div class="field-group">
+          <label>LinkedIn URL</label>
+          <input type="url" id="linkedinUrl" data-validate="url">
+          <div class="field-error">URL should start with http:// or https://</div>
+        </div>
       </div>
     </div>
 
     <!-- Work Preferences -->
-    <div class="section">
-      <div class="section-title">Work Preferences</div>
-      <div class="row">
-        <div class="field-group">
-          <label>Years of Experience</label>
-          <input type="text" id="yearsOfExperience">
+    <div class="section" id="section-work" data-section="work">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-chevron">&#9660;</span>
+          <span class="section-title">Work Preferences</span>
+        </div>
+        <span class="section-badge" data-badge="work"></span>
+      </div>
+      <div class="section-body">
+        <div class="row">
+          <div class="field-group">
+            <label>Years of Experience</label>
+            <input type="text" id="yearsOfExperience">
+          </div>
+          <div class="field-group">
+            <label>Work Authorization</label>
+            <select id="workAuthorization">
+              <option value="">Select...</option>
+              <option value="Yes">Yes - Authorized to work</option>
+              <option value="No">No - Not authorized</option>
+            </select>
+          </div>
         </div>
         <div class="field-group">
-          <label>Work Authorization</label>
-          <select id="workAuthorization">
-            <option value="">Select…</option>
-            <option value="Yes">Yes — Authorized to work</option>
-            <option value="No">No — Not authorized</option>
+          <label>Citizenship Status</label>
+          <select id="citizenshipStatus">
+            <option value="">Select...</option>
+            <option value="U.S. citizen">U.S. Citizen</option>
+            <option value="U.S. lawful permanent resident">Lawful Permanent Resident (Green Card)</option>
+            <option value="Authorized to work with visa">Authorized to Work (Visa)</option>
+            <option value="DACA">DACA</option>
+            <option value="Refugee or Asylee">Refugee / Asylee</option>
+            <option value="Other">Other</option>
           </select>
+        </div>
+        <div class="row">
+          <div class="field-group">
+            <label>Sponsorship Needed</label>
+            <select id="sponsorshipNeeded">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Willing to Relocate</label>
+            <select id="willingToRelocate">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field-group">
+            <label>Previously Associated with Company</label>
+            <select id="previouslyEmployed">
+              <option value="">Select...</option>
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Relatives at Company</label>
+            <select id="relatedToEmployee">
+              <option value="">Select...</option>
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field-group">
+            <label>Desired Salary</label>
+            <input type="text" id="desiredSalary" placeholder="e.g. 85000">
+          </div>
+          <div class="field-group">
+            <label>Desired Start Date</label>
+            <div class="checkbox-group" style="margin-bottom: 8px;">
+              <input type="checkbox" id="autoStartDate" checked>
+              <label for="autoStartDate">Auto-calculate (Monday, 2 weeks out)</label>
+            </div>
+            <input type="date" id="desiredStartDate" disabled style="opacity: 0.5;">
+            <div id="autoStartDatePreview" style="font-size: 12px; color: #1D4289; margin-top: 4px; font-weight: 600;"></div>
+          </div>
         </div>
       </div>
-      <div class="row">
-        <div class="field-group">
-          <label>Sponsorship Needed</label>
-          <select id="sponsorshipNeeded">
-            <option value="">Select…</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
-          </select>
+    </div>
+
+    <!-- Voluntary Disclosures -->
+    <div class="section" id="section-disclosures" data-section="disclosures">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-chevron">&#9660;</span>
+          <span class="section-title">Voluntary Disclosures</span>
+        </div>
+        <span class="section-badge" data-badge="disclosures"></span>
+      </div>
+      <div class="section-body">
+        <p style="font-size: 12px; color: #7A6F65; margin-bottom: 16px;">These are optional fields commonly asked on US job applications for EEO reporting.</p>
+        <div class="row">
+          <div class="field-group">
+            <label>Gender</label>
+            <select id="gender">
+              <option value="">Select...</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Decline to Self Identify">Decline to Self Identify</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Hispanic or Latino</label>
+            <select id="hispanicOrLatino">
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Decline to Self Identify">Decline to Self Identify</option>
+            </select>
+          </div>
         </div>
         <div class="field-group">
-          <label>Willing to Relocate</label>
-          <select id="willingToRelocate">
-            <option value="">Select…</option>
-            <option value="Yes">Yes</option>
-            <option value="No">No</option>
+          <label>Race / Ethnicity</label>
+          <select id="raceEthnicity">
+            <option value="">Select...</option>
+            <option value="American Indian or Alaska Native">American Indian or Alaska Native</option>
+            <option value="Asian">Asian</option>
+            <option value="Black or African American">Black or African American</option>
+            <option value="Hispanic or Latino">Hispanic or Latino</option>
+            <option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option>
+            <option value="White">White</option>
+            <option value="Two or More Races">Two or More Races</option>
+            <option value="Decline to Self Identify">Decline to Self Identify</option>
           </select>
+        </div>
+        <div class="row">
+          <div class="field-group">
+            <label>Veteran Status</label>
+            <select id="veteranStatus">
+              <option value="">Select...</option>
+              <option value="I am not a protected veteran">I am not a protected veteran</option>
+              <option value="I identify as one or more of the classifications of a protected veteran">I identify as a protected veteran</option>
+              <option value="I don't wish to answer">I don't wish to answer</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Disability Status</label>
+            <select id="disabilityStatus">
+              <option value="">Select...</option>
+              <option value="Yes, I have a disability">Yes, I have a disability</option>
+              <option value="No, I do not have a disability">No, I do not have a disability</option>
+              <option value="I don't wish to answer">I don't wish to answer</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Resume & Documents -->
-    <div class="section">
-      <div class="section-title">Resume & Documents</div>
-      <p style="margin-top: 0; margin-bottom: 20px; font-size: 0.9em; color: #555;">
-        Upload your resume to automatically attach it to file inputs on job applications.
-      </p>
-      
-      <div class="field-group">
-        <label>Resume (PDF, DOCX)</label>
-        <div id="resume-upload-container" style="display: flex; gap: 10px; align-items: center; border: 1px dashed #ccc; padding: 10px; border-radius: 6px; background: #fafafa;">
-          <input type="file" id="resumeFile" accept=".pdf,.doc,.docx" style="max-width: 250px;">
-          <span id="resumeMetadata" style="font-size: 0.9em; color: #166534; display: none; margin-left: auto;"></span>
-          <button id="removeResumeBtn" type="button" class="btn-secondary" style="display: none; padding: 4px 12px; font-size: 0.85em; border-color: #dc2626; color: #dc2626; margin-left: auto;">Remove</button>
+    <div class="section" id="section-resume" data-section="resume">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-chevron">&#9660;</span>
+          <span class="section-title">Resume & Documents</span>
+        </div>
+        <span class="section-badge" data-badge="resume"></span>
+      </div>
+      <div class="section-body">
+        <div class="resume-dropzone" id="resumeDropzone">
+          <div class="resume-dropzone-icon">&#128196;</div>
+          <div class="resume-dropzone-text">Drag & drop your resume here, or click to browse</div>
+          <div class="resume-dropzone-hint">PDF, DOC, DOCX — max 5 MB</div>
+          <input type="file" id="resumeFile" accept=".pdf,.doc,.docx">
+        </div>
+        <div class="resume-info" id="resumeInfo">
+          <span class="resume-info-icon">&#128196;</span>
+          <div class="resume-info-details">
+            <div class="resume-info-name" id="resumeName"></div>
+            <div class="resume-info-meta" id="resumeMeta"></div>
+          </div>
+          <button type="button" class="btn-remove-resume" id="removeResumeBtn">Remove</button>
         </div>
       </div>
     </div>
 
+    <!-- Education Entries -->
+    <div class="section" id="section-education" data-section="education">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-chevron">&#9660;</span>
+          <span class="section-title">Education</span>
+        </div>
+        <span class="section-badge" data-badge="education"></span>
+      </div>
+      <div class="section-body">
+        <div id="educationList"></div>
+        <button class="btn-add-entry" id="addEducationBtn">+ Add Education</button>
+      </div>
+    </div>
+
     <!-- Work Experience Entries -->
-    <div class="section">
-      <div class="section-title">Work Experience</div>
-      <div id="experienceList"></div>
-      <button class="btn-add-entry" id="addExperienceBtn">+ Add Experience</button>
+    <div class="section" id="section-experience" data-section="experience">
+      <div class="section-header">
+        <div class="section-header-left">
+          <span class="section-chevron">&#9660;</span>
+          <span class="section-title">Work Experience</span>
+        </div>
+        <span class="section-badge" data-badge="experience"></span>
+      </div>
+      <div class="section-body">
+        <div id="experienceList"></div>
+        <button class="btn-add-entry" id="addExperienceBtn">+ Add Experience</button>
+      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-save" id="saveBtn">Save Profile</button>
-    </div>
-    <div class="status" id="status"></div>
+  </div>
 
+  <!-- Sticky bottom save bar -->
+  <div class="sticky-bar">
+    <span class="last-saved" id="lastSaved"></span>
+    <button class="btn-save" id="saveBtn">Save Profile</button>
+    <span class="status" id="status"></span>
   </div>
 </body>
 </html>

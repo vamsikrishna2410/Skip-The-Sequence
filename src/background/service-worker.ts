@@ -1,8 +1,8 @@
-// Background service worker for Stop The Sequence
+// Background service worker for Skip The Sequence
 // Handles extension lifecycle events and coordinates between popup and content scripts
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Stop The Sequence extension installed.');
+  console.log('Skip The Sequence extension installed.');
 });
 
 // Allowed message actions
