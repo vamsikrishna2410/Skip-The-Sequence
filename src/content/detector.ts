@@ -46,7 +46,7 @@ const FALLBACK_FIELD_VALUES: FallbackFieldValue[] = [
   { keywords: ['sms updates', 'text/sms', 'text sms', 'sms notification', 'text updates', 'text message updates'], value: 'No' },
   { keywords: ['read our blog', 'read our engineering blog', 'read the blog', 'visited our blog'], value: 'No' },
   { keywords: ['email me about other job', 'other job openings', 'recruitment-related newsletter', 'recruitment related newsletter', 'email me about', 'marketing email', 'promotional email', 'other opportunities'], value: 'No' },
-  { keywords: ['associated with deloitte', 'associated with kpmg', 'associated with ernst', 'associated with pwc', 'independent auditor', 'auditing firm'], value: 'No' },
+  { keywords: ['associated with deloitte', 'associated with kpmg', 'associated with ernst', 'associated with pwc', 'independent auditor', 'auditing firm', 'impairment of our parent company'], value: 'No' },
 ];
 
 // Map of form field keywords to profile fields.
@@ -209,9 +209,13 @@ function getTextFromAriaLabelledBy(element: HTMLElement): string {
   const parts: string[] = [];
   for (const id of ids.split(/\s+/)) {
     const target = document.getElementById(id);
-    if (target?.textContent && !target.querySelector('input, select, textarea')) {
-      const txt = target.textContent.trim();
-      if (txt.length < 100) parts.push(txt);
+    if (target?.textContent) {
+      // For aria-labelledby, extract just the direct text content of the label,
+      // excluding text from nested form controls (react-select placeholders, etc.)
+      const clone = target.cloneNode(true) as HTMLElement;
+      clone.querySelectorAll('input, select, textarea, [role="combobox"], .select__placeholder, .select__single-value').forEach((el) => el.remove());
+      const txt = clone.textContent?.trim() || '';
+      if (txt.length > 0 && txt.length < 600) parts.push(txt);
     }
   }
   return parts.join(' ');
@@ -238,7 +242,7 @@ function getNearbyLabelText(element: HTMLElement): string {
       ) {
         if (!sibling.querySelector('input, select, textarea')) {
           const txt = sibling.textContent.trim();
-          if (txt.length > 0 && txt.length < 200) {
+          if (txt.length > 0 && txt.length < 600) {
             parts.push(txt);
           }
         }
@@ -261,7 +265,7 @@ function getNearbyLabelText(element: HTMLElement): string {
         // Skip elements that contain form controls (they're wrappers, not labels)
         if (child.querySelector('input, select, textarea, button[aria-haspopup]')) continue;
         const txt = (child.textContent || '').trim();
-        if (txt.length > 3 && txt.length < 200) {
+        if (txt.length > 3 && txt.length < 600) {
           parts.push(txt);
           break;
         }
@@ -361,7 +365,7 @@ function getFieldIdentifiers(element: FillableElement): string {
       const target = document.getElementById(id);
       if (target?.textContent && !target.querySelector('input, select, textarea')) {
         const txt = target.textContent.trim();
-        if (txt.length > 3 && txt.length < 200) parts.push(txt);
+        if (txt.length > 3 && txt.length < 600) parts.push(txt);
       }
     }
   }
@@ -532,14 +536,14 @@ function resolveWorkExperienceValue(
     return { value: exp.currentlyWorking ? 'true' : 'false', preferStateMatching: false };
   }
 
-  const startDateLike = id.includes('from') || id.includes('start');
-  const endDateLike = id.includes('to') || id.includes('end');
+  const startDateLike = id.includes('start date') || id.includes('startdate') || id.includes('start_date') || id.includes('start month') || id.includes('start year') || id.includes('from date') || id.includes('fromdate') || id.includes('from month') || id.includes('from year') || id.includes('date from') || id.includes('date started');
+  const endDateLike = id.includes('end date') || id.includes('enddate') || id.includes('end_date') || id.includes('end month') || id.includes('end year') || id.includes('to date') || id.includes('todate') || id.includes('to month') || id.includes('to year') || id.includes('date to') || id.includes('date ended');
   const dateLike = id.includes('date') || id.includes('mm yyyy') || id.includes('month') || id.includes('year');
 
   const isYearOnly = id.includes('year') && !id.includes('month');
   const isMonthOnly = id.includes('month') && !id.includes('year');
 
-  if (startDateLike || (dateLike && (id.includes('from') || id.includes('start')))) {
+  if (startDateLike) {
     if (startDate) {
       const parts = startDate.split('/');
       if (isYearOnly && parts.length === 2) {
@@ -552,7 +556,7 @@ function resolveWorkExperienceValue(
     }
   }
 
-  if (endDateLike || (dateLike && (id.includes('to') || id.includes('end')))) {
+  if (endDateLike) {
     if (exp.currentlyWorking) {
       return null;
     }
@@ -1766,32 +1770,87 @@ async function typeAndMatch(
   return false;
 }
 
+async function openReactSelectMenu(element: HTMLInputElement | HTMLTextAreaElement): Promise<void> {
+  // React-select listens for mouseDown on the control container, not click on the input.
+  // Find the react-select control wrapper and dispatch mouseDown on it.
+  const control = element.closest('.select__control, [class*="control"], [class*="Control"]');
+  if (control) {
+    control.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    control.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    control.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+  element.focus();
+  element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  // Also try ArrowDown which universally opens combobox dropdowns
+  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true }));
+}
+
 async function fillComboboxInput(
   element: HTMLInputElement | HTMLTextAreaElement,
   value: string,
   preferStateMatching: boolean
 ): Promise<boolean> {
-  element.focus();
-  element.click();
-
   const candidates = buildCandidates(value, preferStateMatching);
-  const searchTexts = getSearchTexts(value, preferStateMatching);
 
-  // Try each search text variant (e.g. "US" then "United States" then "United States of America")
+  // Phase 1: Open dropdown (without typing) and match the full option list.
+  // This works best for react-select where typing may not reliably trigger the filter.
+  await openReactSelectMenu(element);
+  await delay(350);
+
+  let listId = element.getAttribute('aria-controls');
+  let listRoot = listId ? document.getElementById(listId) || undefined : undefined;
+  let options = findVisibleOptions(listRoot);
+  let match = findMatchingOption(options, candidates);
+  if (!match && options.length === 0) {
+    // Retry - dropdown may need more time
+    await delay(300);
+    listId = element.getAttribute('aria-controls');
+    listRoot = listId ? document.getElementById(listId) || undefined : undefined;
+    options = findVisibleOptions(listRoot);
+    match = findMatchingOption(options, candidates);
+  }
+  if (match) {
+    clickOption(match);
+    await confirmDropdownSelection(element);
+    return true;
+  }
+
+  // Close any open menu before typing
+  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+  await delay(100);
+
+  // Phase 2: Type to filter, then match (for searchable dropdowns)
+  const searchTexts = getSearchTexts(value, preferStateMatching);
   for (const searchText of searchTexts) {
     const found = await typeAndMatch(element, searchText, candidates, preferStateMatching);
     if (found) return true;
   }
 
-  // Fallback: try just the first letter (some dropdowns only support single-letter jump)
-  if (value.trim().length > 0) {
-    const found = await typeAndMatch(element, value.trim()[0], candidates, preferStateMatching);
-    if (found) return true;
+  // Phase 3: Clear typed text, reopen, try matching the full list again
+  const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+  if (nativeSetter) {
+    nativeSetter.call(element, '');
+  } else {
+    element.value = '';
+  }
+  dispatchTextInputEvents(element, '');
+  await openReactSelectMenu(element);
+  await delay(350);
+  listId = element.getAttribute('aria-controls');
+  listRoot = listId ? document.getElementById(listId) || undefined : undefined;
+  options = findVisibleOptions(listRoot);
+  match = findMatchingOption(options, candidates);
+  if (match) {
+    clickOption(match);
+    await confirmDropdownSelection(element);
+    return true;
   }
 
-  // No option matched - press Enter as a last resort (some sites accept typed text)
-  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-  element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
+  // No option matched - press Escape to close
+  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+  commitFocusOut(element);
   return false;
 }
 
@@ -2169,6 +2228,12 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
     if (!isFileInput && !isElementVisible(html)) { continue; }
     if (html.hasAttribute('disabled')) { continue; }
 
+    // Skip hidden validation inputs (Greenhouse react-select mirrors).
+    // Filling these dispatches events that reset the combobox state.
+    if (html.getAttribute('aria-hidden') === 'true' || html.getAttribute('tabindex') === '-1') {
+      continue;
+    }
+
     if (input instanceof HTMLInputElement && input.readOnly && !isComboboxInput(input)) {
       continue;
     }
@@ -2199,7 +2264,19 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
     // not work experience dates. Let matchField handle them.
     const isSpinbutton = input instanceof HTMLInputElement && input.getAttribute('role') === 'spinbutton';
 
-    if (!isSpinbutton && input instanceof HTMLInputElement && isDateLikeInput(input)) {
+    // Check fallback values FIRST - these are specific question patterns (e.g. Deloitte
+    // auditor question, "how did you hear") that must take priority over ALL other matching
+    // including edu/exp resolvers, to avoid false positives like "major" in "major shareholder"
+    // triggering education field matching.
+    if (!value) {
+      const fallback = matchFallbackValue(identifiers);
+      if (fallback) {
+        value = fallback.value;
+        preferStateMatching = Boolean(fallback.preferStateMatching);
+      }
+    }
+
+    if (!isSpinbutton && !value && input instanceof HTMLInputElement && isDateLikeInput(input)) {
       const positionalDate = resolveExperienceDateByPosition(profile, input);
       if (positionalDate) {
         value = positionalDate;
@@ -2218,17 +2295,6 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
           value = expValue.value;
           preferStateMatching = expValue.preferStateMatching;
         }
-      }
-    }
-
-    // Check fallback values FIRST - these are specific question patterns (e.g. Deloitte
-    // auditor question, "how did you hear") that must take priority over generic keyword
-    // matching to avoid false positives like "company" matching in unrelated questions.
-    if (!value) {
-      const fallback = matchFallbackValue(identifiers);
-      if (fallback) {
-        value = fallback.value;
-        preferStateMatching = Boolean(fallback.preferStateMatching);
       }
     }
 
