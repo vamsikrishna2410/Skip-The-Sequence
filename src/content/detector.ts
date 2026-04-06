@@ -47,6 +47,7 @@ const FALLBACK_FIELD_VALUES: FallbackFieldValue[] = [
   { keywords: ['read our blog', 'read our engineering blog', 'read the blog', 'visited our blog'], value: 'No' },
   { keywords: ['email me about other job', 'other job openings', 'recruitment-related newsletter', 'recruitment related newsletter', 'email me about', 'marketing email', 'promotional email', 'other opportunities'], value: 'No' },
   { keywords: ['associated with deloitte', 'associated with kpmg', 'associated with ernst', 'associated with pwc', 'independent auditor', 'auditing firm', 'impairment of our parent company'], value: 'No' },
+  { keywords: ['presently employed by any company within', 'booking holdings group', 'employed by any company within the'], value: 'No' },
 ];
 
 // Map of form field keywords to profile fields.
@@ -1770,44 +1771,47 @@ async function typeAndMatch(
   return false;
 }
 
-async function openReactSelectMenu(element: HTMLInputElement | HTMLTextAreaElement): Promise<void> {
-  // React-select listens for mouseDown on the control container, not click on the input.
-  // Find the react-select control wrapper and dispatch mouseDown on it.
-  const control = element.closest('.select__control, [class*="control"], [class*="Control"]');
-  if (control) {
-    control.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    control.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    control.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  }
-  element.focus();
-  element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-  element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-  element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-  // Also try ArrowDown which universally opens combobox dropdowns
-  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true }));
-}
-
 async function fillComboboxInput(
   element: HTMLInputElement | HTMLTextAreaElement,
   value: string,
   preferStateMatching: boolean
 ): Promise<boolean> {
+  element.focus();
+  element.click();
+
   const candidates = buildCandidates(value, preferStateMatching);
+  const searchTexts = getSearchTexts(value, preferStateMatching);
 
-  // Phase 1: Open dropdown (without typing) and match the full option list.
-  // This works best for react-select where typing may not reliably trigger the filter.
-  await openReactSelectMenu(element);
-  await delay(350);
+  // Phase 1: Type to filter, then match (works for searchable react-select)
+  for (const searchText of searchTexts) {
+    const found = await typeAndMatch(element, searchText, candidates, preferStateMatching);
+    if (found) return true;
+  }
 
-  let listId = element.getAttribute('aria-controls');
-  let listRoot = listId ? document.getElementById(listId) || undefined : undefined;
+  // Phase 2: Try just the first letter (some dropdowns only support single-letter jump)
+  if (value.trim().length > 0) {
+    const found = await typeAndMatch(element, value.trim()[0], candidates, preferStateMatching);
+    if (found) return true;
+  }
+
+  // Phase 3: Clear typed text, click to reopen full unfiltered dropdown, then match.
+  // Handles non-filterable dropdowns where typing doesn't filter options.
+  const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+  if (nativeSetter) {
+    nativeSetter.call(element, '');
+  } else {
+    element.value = '';
+  }
+  dispatchTextInputEvents(element, '');
+  element.focus();
+  element.click();
+  await delay(300);
+  const listId = element.getAttribute('aria-controls');
+  const listRoot = listId ? document.getElementById(listId) || undefined : undefined;
   let options = findVisibleOptions(listRoot);
   let match = findMatchingOption(options, candidates);
-  if (!match && options.length === 0) {
-    // Retry - dropdown may need more time
-    await delay(300);
-    listId = element.getAttribute('aria-controls');
-    listRoot = listId ? document.getElementById(listId) || undefined : undefined;
+  if (!match) {
+    await delay(250);
     options = findVisibleOptions(listRoot);
     match = findMatchingOption(options, candidates);
   }
@@ -1817,38 +1821,7 @@ async function fillComboboxInput(
     return true;
   }
 
-  // Close any open menu before typing
-  element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
-  await delay(100);
-
-  // Phase 2: Type to filter, then match (for searchable dropdowns)
-  const searchTexts = getSearchTexts(value, preferStateMatching);
-  for (const searchText of searchTexts) {
-    const found = await typeAndMatch(element, searchText, candidates, preferStateMatching);
-    if (found) return true;
-  }
-
-  // Phase 3: Clear typed text, reopen, try matching the full list again
-  const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-  if (nativeSetter) {
-    nativeSetter.call(element, '');
-  } else {
-    element.value = '';
-  }
-  dispatchTextInputEvents(element, '');
-  await openReactSelectMenu(element);
-  await delay(350);
-  listId = element.getAttribute('aria-controls');
-  listRoot = listId ? document.getElementById(listId) || undefined : undefined;
-  options = findVisibleOptions(listRoot);
-  match = findMatchingOption(options, candidates);
-  if (match) {
-    clickOption(match);
-    await confirmDropdownSelection(element);
-    return true;
-  }
-
-  // No option matched - press Escape to close
+  // No option matched - close and move on
   element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
   commitFocusOut(element);
   return false;
