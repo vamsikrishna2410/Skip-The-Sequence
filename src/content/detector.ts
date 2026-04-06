@@ -78,7 +78,7 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['citizenship status', 'citizenship', 'immigration status', 'citizen or national', 'residency status'], profileKey: 'citizenshipStatus' },
   { keywords: ['sponsorship', 'visa sponsorship', 'require sponsorship', 'need sponsorship', 'immigration sponsorship'], profileKey: 'sponsorshipNeeded' },
   { keywords: ['willing to relocate', 'open to relocation', 'relocate', 'relocation'], profileKey: 'willingToRelocate' },
-  { keywords: ['previously employed here', 'ever employed here', 'ever worked here', 'worked here before', 'former employee of this', 'former employee of our', 'previously worked for us', 'prior employee of this', 'prior employee of our', 'former agent', 'active agent', 'supplier of goods', 'supplier of services'], profileKey: 'previouslyEmployed' },
+  { keywords: ['previously employed', 'ever employed', 'ever worked', 'worked here before', 'former employee', 'previously worked', 'prior employee', 'employed by', 'employed with', 'former agent', 'active agent', 'supplier of goods', 'supplier of services'], profileKey: 'previouslyEmployed' },
   { keywords: ['desired salary', 'salary expectation', 'expected salary', 'salary requirement', 'compensation expectation', 'desired compensation', 'expected compensation', 'pay expectation', 'desired pay'], profileKey: 'desiredSalary' },
   { keywords: ['relatives who work', 'relatives at', 'family members who work', 'related to employee', 'related to anyone', 'family at the company', 'relatives employed', 'know anyone who works', 'related to any employee', 'personal relationship', 'relationship with a current', 'relationship with an'], profileKey: 'relatedToEmployee' },
   { keywords: ['desired start date', 'available start date', 'earliest start date', 'start date available', 'when can you start', 'date available', 'availability date', 'available to start'], profileKey: 'desiredStartDate' },
@@ -87,8 +87,8 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['gender', 'gender identity', 'what is your gender'], profileKey: 'gender' },
   { keywords: ['hispanic or latino', 'hispanic/latino', 'ethnicity hispanic', 'are you hispanic'], profileKey: 'hispanicOrLatino' },
   { keywords: ['race/ethnicity', 'race ethnicity', 'race or ethnicity', 'racial background', 'ethnicity', 'race'], profileKey: 'raceEthnicity' },
-  { keywords: ['veteran status', 'veteran of the us armed', 'protected veteran', 'us armed forces', 'military service', 'veteran classification', 'are you a veteran', 'veteran'], profileKey: 'veteranStatus' },
-  { keywords: ['disability status', 'disability', 'do you have a disability', 'person with a disability', 'handicap'], profileKey: 'disabilityStatus' },
+  { keywords: ['veteran status', 'veteran of the us armed', 'protected veteran', 'us armed forces', 'military service', 'veteran classification', 'are you a veteran', 'confirm your veteran', 'identify veteran'], profileKey: 'veteranStatus' },
+  { keywords: ['disability status', 'do you have a disability', 'person with a disability', 'handicap', 'please confirm your disability', 'identify disability'], profileKey: 'disabilityStatus' },
 
   // Files
   { keywords: ['resume', 'cv', 'curriculum vitae', 'upload resume', 'resume/cv', 'upload cv', 'attach resume', 'attach cv', 'upload document', 'upload file'], profileKey: 'resume' },
@@ -537,8 +537,8 @@ function resolveWorkExperienceValue(
     return { value: exp.currentlyWorking ? 'true' : 'false', preferStateMatching: false };
   }
 
-  const startDateLike = id.includes('start date') || id.includes('startdate') || id.includes('start_date') || id.includes('start month') || id.includes('start year') || id.includes('from date') || id.includes('fromdate') || id.includes('from month') || id.includes('from year') || id.includes('date from') || id.includes('date started');
-  const endDateLike = id.includes('end date') || id.includes('enddate') || id.includes('end_date') || id.includes('end month') || id.includes('end year') || id.includes('to date') || id.includes('todate') || id.includes('to month') || id.includes('to year') || id.includes('date to') || id.includes('date ended');
+  const startDateLike = id.includes('start date') || id.includes('startdate') || id.includes('start_date') || id.includes('start month') || id.includes('start year') || id.includes('from date') || id.includes('fromdate') || id.includes('from month') || id.includes('from year') || id.includes('date from') || id.includes('date started') || /\bfrom\b/.test(id) || /\bstart\b/.test(id);
+  const endDateLike = id.includes('end date') || id.includes('enddate') || id.includes('end_date') || id.includes('end month') || id.includes('end year') || id.includes('to date') || id.includes('todate') || id.includes('to month') || id.includes('to year') || id.includes('date to') || id.includes('date ended') || /\bend\b/.test(id);
   const dateLike = id.includes('date') || id.includes('mm yyyy') || id.includes('month') || id.includes('year');
 
   const isYearOnly = id.includes('year') && !id.includes('month');
@@ -1238,6 +1238,22 @@ function buildCandidates(value: string, preferStateMatching: boolean): string[] 
   ];
   if (normalized) {
     for (const group of DEGREE_SYNONYMS) {
+      if (group.includes(normalized)) {
+        for (const synonym of group) {
+          candidates.add(synonym);
+        }
+      }
+    }
+  }
+
+  // Add veteran status synonyms so "I am not a protected veteran" matches "I am not a Veteran"
+  const VETERAN_SYNONYMS: string[][] = [
+    ['i am not a protected veteran', 'i am not a veteran', 'not a veteran', 'not a protected veteran', 'no veteran status'],
+    ['i identify as one or more of the classifications of a protected veteran', 'i identify as one or more of the classifications listed', 'i am a protected veteran', 'protected veteran', 'i identify as a veteran'],
+    ['i do not wish to self identify', 'i do not wish to identify', 'prefer not to say', 'decline to self identify', 'decline to state'],
+  ];
+  if (normalized) {
+    for (const group of VETERAN_SYNONYMS) {
       if (group.includes(normalized)) {
         for (const synonym of group) {
           candidates.add(synonym);
@@ -2202,8 +2218,8 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
     if (html.hasAttribute('disabled')) { continue; }
 
     // Skip hidden validation inputs (Greenhouse react-select mirrors).
-    // Filling these dispatches events that reset the combobox state.
-    if (html.getAttribute('aria-hidden') === 'true' || html.getAttribute('tabindex') === '-1') {
+    // These have aria-hidden="true" AND tabindex="-1" AND a specific class.
+    if (html.getAttribute('aria-hidden') === 'true' && html.getAttribute('tabindex') === '-1') {
       continue;
     }
 
@@ -2309,6 +2325,30 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
         if (profileKey === 'desiredStartDate' && value === 'auto') {
           value = computeAutoStartDate();
         }
+      }
+    }
+
+    // Standalone "Name" field (e.g. on disclosure/signature forms) - fill with full name
+    // but NOT if it's "company name", "school name", etc.
+    if (!value && normalizedIdentifiers) {
+      const hasBareName = /\bname\b/.test(normalizedIdentifiers);
+      const hasQualifier = /first.?name|last.?name|company.?name|school.?name|preferred.?name|middle.?name|legal.?name/.test(normalizedIdentifiers);
+      if (hasBareName && !hasQualifier) {
+        const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+        if (fullName) value = fullName;
+      }
+    }
+
+    // Standalone "Date" field on signature/disclosure forms - fill with today's date
+    if (!value && normalizedIdentifiers) {
+      const isBareDate = /\bdate\b/.test(normalizedIdentifiers);
+      const hasDateQualifier = /start.?date|end.?date|birth.?date|desired.?date|available.?date|from|to date|graduation/.test(normalizedIdentifiers);
+      if (isBareDate && !hasDateQualifier && input instanceof HTMLInputElement) {
+        const today = new Date();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        value = `${mm}/${dd}/${yyyy}`;
       }
     }
 
