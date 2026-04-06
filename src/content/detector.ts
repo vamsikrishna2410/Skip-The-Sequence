@@ -47,6 +47,8 @@ const FALLBACK_FIELD_VALUES: FallbackFieldValue[] = [
   { keywords: ['read our blog', 'read our engineering blog', 'read the blog', 'visited our blog'], value: 'No' },
   { keywords: ['email me about other job', 'other job openings', 'recruitment-related newsletter', 'recruitment related newsletter', 'email me about', 'marketing email', 'promotional email', 'other opportunities'], value: 'No' },
   { keywords: ['associated with deloitte', 'associated with kpmg', 'associated with ernst', 'associated with pwc', 'independent auditor', 'auditing firm', 'impairment of our parent company'], value: 'No' },
+  { keywords: ['at least 18', '18 years of age', '18 years or older', 'are you 18', 'over 18', 'older than 18'], value: 'Yes' },
+  { keywords: ['non-compete', 'non compete', 'noncompete', 'non-solicitation', 'non solicitation', 'restrict your potential employment', 'restrict your employment'], value: 'No' },
   { keywords: ['presently employed by any company within', 'booking holdings group', 'employed by any company within the'], value: 'No' },
 ];
 
@@ -80,7 +82,7 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['willing to relocate', 'open to relocation', 'relocate', 'relocation'], profileKey: 'willingToRelocate' },
   { keywords: ['previously employed', 'ever employed', 'ever worked', 'worked here before', 'former employee', 'previously worked', 'prior employee', 'employed by', 'employed with', 'former agent', 'active agent', 'supplier of goods', 'supplier of services'], profileKey: 'previouslyEmployed' },
   { keywords: ['desired salary', 'salary expectation', 'expected salary', 'salary requirement', 'compensation expectation', 'desired compensation', 'expected compensation', 'pay expectation', 'desired pay'], profileKey: 'desiredSalary' },
-  { keywords: ['relatives who work', 'relatives at', 'family members who work', 'related to employee', 'related to anyone', 'family at the company', 'relatives employed', 'know anyone who works', 'related to any employee', 'personal relationship', 'relationship with a current', 'relationship with an'], profileKey: 'relatedToEmployee' },
+  { keywords: ['relatives who work', 'relatives who currently work', 'relatives at', 'family members who work', 'related to employee', 'related to anyone', 'family at the company', 'relatives employed', 'know anyone who works', 'related to any employee', 'personal relationship', 'relationship with a current', 'relationship with an', 'any relatives', 'have any relatives'], profileKey: 'relatedToEmployee' },
   { keywords: ['desired start date', 'available start date', 'earliest start date', 'start date available', 'when can you start', 'date available', 'availability date', 'available to start'], profileKey: 'desiredStartDate' },
 
   // Voluntary disclosures
@@ -2198,6 +2200,9 @@ async function simulateFileDrop(target: HTMLElement, file: File): Promise<void> 
 /**
  * Detect all fillable fields on the page and fill them sequentially.
  */
+export { isElementVisible, delay };
+export const FORM_CONTROL_SELECTOR = CONTROL_SELECTOR;
+
 export async function detectAndFill(profile: UserProfile): Promise<number> {
   const inputs = collectFillableCandidates();
   console.log(`[STS] Found ${inputs.length} candidate elements`);

@@ -6,7 +6,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Allowed message actions
-const ALLOWED_ACTIONS = new Set(['fillForm']);
+const ALLOWED_ACTIONS = new Set(['fillForm', 'autoAdvance', 'abortAutoAdvance']);
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -15,8 +15,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message.action === 'fillForm') {
-    // Forward fill request to the active tab's content script
+  if (message.action === 'fillForm' || message.action === 'autoAdvance' || message.action === 'abortAutoAdvance') {
+    // Forward request to the active tab's content script
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tabId = tabs[0]?.id;
       if (!tabId) {
@@ -25,7 +25,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
 
       // Try sending to existing content script first
-      chrome.tabs.sendMessage(tabId, { action: 'fillForm' }, async (response) => {
+      chrome.tabs.sendMessage(tabId, { action: message.action }, async (response) => {
         if (!chrome.runtime.lastError && response) {
           sendResponse(response);
           return;
@@ -37,9 +37,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             target: { tabId, allFrames: true },
             files: ['content.js'],
           });
-          // Small delay for the script to initialize its listener
           setTimeout(() => {
-            chrome.tabs.sendMessage(tabId, { action: 'fillForm' }, (retryResponse) => {
+            chrome.tabs.sendMessage(tabId, { action: message.action }, (retryResponse) => {
               if (chrome.runtime.lastError || !retryResponse) {
                 sendResponse({ success: false, filledCount: 0, error: 'Could not reach page. Is it a supported job site?' });
                 return;
@@ -52,6 +51,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
     });
-    return true; // keep message channel open for async response
+    return true;
   }
 });
