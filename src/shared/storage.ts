@@ -3,10 +3,10 @@
  *
  * Content scripts cannot access the extension's IndexedDB (they run in
  * the web-page origin).  chrome.storage.local is accessible from every
- * extension context — options page, popup, background, AND content scripts.
+ * extension context - options page, popup, background, AND content scripts.
  *
  * Files are stored as base64 strings along with their metadata.
- * We cap uploads at 5 MB, which becomes ~6.7 MB base64 — well within
+ * We cap uploads at 5 MB, which becomes ~6.7 MB base64 - well within
  * the 10 MB chrome.storage.local quota.
  */
 

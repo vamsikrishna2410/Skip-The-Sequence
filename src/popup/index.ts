@@ -1,4 +1,4 @@
-// Popup script — minimal: Auto-Fill button + open options page
+// Popup script - minimal: Auto-Fill button + open options page
 
 function showStatus(message: string, isError = false): void {
   const status = document.getElementById('status')!;

@@ -31,7 +31,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
 
-        // Content script not loaded — inject it programmatically and retry
+        // Content script not loaded - inject it programmatically and retry
         try {
           await chrome.scripting.executeScript({
             target: { tabId, allFrames: true },

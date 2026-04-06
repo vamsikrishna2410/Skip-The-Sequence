@@ -1,4 +1,4 @@
-// Options page script — full profile editor
+// Options page script - full profile editor
 
 import { saveProfile, getProfileOrDefault } from '../storage/profile';
 import { UserProfile, WorkExperience, Education, EMPTY_PROFILE, EMPTY_EXPERIENCE, EMPTY_EDUCATION } from '../shared/types';
@@ -538,7 +538,7 @@ function populateForm(profile: UserProfile): void {
   for (const key of FLAT_FIELD_IDS) {
     const el = document.getElementById(key) as HTMLInputElement | HTMLSelectElement | null;
     if (!el || !(profile as any)[key]) continue;
-    // Don't set "auto" on date inputs — it's not a valid date string
+    // Don't set "auto" on date inputs - it's not a valid date string
     if (el instanceof HTMLInputElement && el.type === 'date' && (profile as any)[key] === 'auto') continue;
     el.value = (profile as any)[key] as string;
   }

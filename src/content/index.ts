@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message && typeof message === 'object' && message.action === 'fillForm') {
     handleFill()
       .then((result) => {
-        // If we're inside an iframe and found nothing, don't respond —
+        // If we're inside an iframe and found nothing, don't respond -
         // let the main frame's response reach the popup instead of
         // winning the race with a misleading "0 fields" result.
         if (result.filledCount === 0 && !isTopFrame()) {

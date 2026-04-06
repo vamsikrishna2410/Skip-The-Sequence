@@ -43,6 +43,10 @@ const CONTROL_SELECTOR = [
 
 const FALLBACK_FIELD_VALUES: FallbackFieldValue[] = [
   { keywords: ['how did you hear', 'hear about us', 'hear about this', 'heard about', 'how did you find', 'where did you hear', 'referral source', 'how did you learn', 'source of application'], value: 'LinkedIn' },
+  { keywords: ['sms updates', 'text/sms', 'text sms', 'sms notification', 'text updates', 'text message updates'], value: 'No' },
+  { keywords: ['read our blog', 'read our engineering blog', 'read the blog', 'visited our blog'], value: 'No' },
+  { keywords: ['email me about other job', 'other job openings', 'recruitment-related newsletter', 'recruitment related newsletter', 'email me about', 'marketing email', 'promotional email', 'other opportunities'], value: 'No' },
+  { keywords: ['associated with deloitte', 'associated with kpmg', 'associated with ernst', 'associated with pwc', 'independent auditor', 'auditing firm'], value: 'No' },
 ];
 
 // Map of form field keywords to profile fields.
@@ -73,9 +77,9 @@ const FIELD_MAPPINGS: FieldMapping[] = [
   { keywords: ['citizenship status', 'citizenship', 'immigration status', 'citizen or national', 'residency status'], profileKey: 'citizenshipStatus' },
   { keywords: ['sponsorship', 'visa sponsorship', 'require sponsorship', 'need sponsorship', 'immigration sponsorship'], profileKey: 'sponsorshipNeeded' },
   { keywords: ['willing to relocate', 'open to relocation', 'relocate', 'relocation'], profileKey: 'willingToRelocate' },
-  { keywords: ['employment history', 'previously employed', 'ever employed', 'ever worked', 'former employee', 'previously worked', 'prior employee', 'worked here before', 'employed by', 'former agent', 'active agent', 'supplier of goods', 'supplier of services', 'former contractor', 'prior relationship', 'previously associated', 'prior association'], profileKey: 'previouslyEmployed' },
+  { keywords: ['previously employed here', 'ever employed here', 'ever worked here', 'worked here before', 'former employee of this', 'former employee of our', 'previously worked for us', 'prior employee of this', 'prior employee of our', 'former agent', 'active agent', 'supplier of goods', 'supplier of services'], profileKey: 'previouslyEmployed' },
   { keywords: ['desired salary', 'salary expectation', 'expected salary', 'salary requirement', 'compensation expectation', 'desired compensation', 'expected compensation', 'pay expectation', 'desired pay'], profileKey: 'desiredSalary' },
-  { keywords: ['relatives who work', 'relatives at', 'family members who work', 'related to employee', 'related to anyone', 'family at the company', 'relatives employed', 'know anyone who works', 'related to any employee'], profileKey: 'relatedToEmployee' },
+  { keywords: ['relatives who work', 'relatives at', 'family members who work', 'related to employee', 'related to anyone', 'family at the company', 'relatives employed', 'know anyone who works', 'related to any employee', 'personal relationship', 'relationship with a current', 'relationship with an'], profileKey: 'relatedToEmployee' },
   { keywords: ['desired start date', 'available start date', 'earliest start date', 'start date available', 'when can you start', 'date available', 'availability date', 'available to start'], profileKey: 'desiredStartDate' },
 
   // Voluntary disclosures
@@ -278,7 +282,7 @@ function getNearbyLabelText(element: HTMLElement): string {
 
 /**
  * For radio/checkbox inputs, find the question text that describes the group.
- * Keeps it lightweight — only checks fieldset/legend, aria, and immediate container.
+ * Keeps it lightweight - only checks fieldset/legend, aria, and immediate container.
  */
 function getRadioGroupQuestion(element: HTMLInputElement): string {
   // 1. Fieldset legend (most reliable)
@@ -313,7 +317,7 @@ function getFieldIdentifiers(element: FillableElement): string {
   const parts: string[] = [];
   const htmlElement = element as HTMLElement;
 
-  // Collect direct attributes (NOT the current value — it can be stale from prior fills)
+  // Collect direct attributes (NOT the current value - it can be stale from prior fills)
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     if (element.placeholder) parts.push(element.placeholder);
     if (element.name) parts.push(element.name);
@@ -323,7 +327,7 @@ function getFieldIdentifiers(element: FillableElement): string {
 
   if (htmlElement.id) parts.push(htmlElement.id);
 
-  // Explicit label[for] association — most reliable signal
+  // Explicit label[for] association - most reliable signal
   if (htmlElement.id) {
     const label = document.querySelector(`label[for="${CSS.escape(htmlElement.id)}"]`);
     if (label?.textContent) {
@@ -369,7 +373,7 @@ function getFieldIdentifiers(element: FillableElement): string {
   }
 
   // Use nearby label scanning when we don't have strong signals.
-  // Check if any existing part matched a field keyword — if not, scan nearby.
+  // Check if any existing part matched a field keyword - if not, scan nearby.
   const hasStrongSignal = parts.some((p) => matchField(normalizeForMatch(p)) !== null);
   if (!hasStrongSignal) {
     const nearbyLabel = getNearbyLabelText(htmlElement);
@@ -411,7 +415,7 @@ function matchField(identifiers: string): ProfileFieldKey | 'resume' | null {
       continue;
     }
 
-    // Don't match 'country' on phone country code fields — those get phoneCountryCode
+    // Don't match 'country' on phone country code fields - those get phoneCountryCode
     if (mapping.profileKey === 'country' && isPhoneCodeField) {
       continue;
     }
@@ -421,7 +425,7 @@ function matchField(identifiers: string): ProfileFieldKey | 'resume' | null {
       continue;
     }
 
-    // Don't match 'phone' on phone country code dropdowns — those get phoneCountryCode
+    // Don't match 'phone' on phone country code dropdowns - those get phoneCountryCode
     if (mapping.profileKey === 'phone' && isPhoneCodeField) {
       continue;
     }
@@ -485,7 +489,7 @@ function resolveEducationValue(
   if ((id.includes('school') || id.includes('university') || id.includes('college') || id.includes('institution')) && edu.school) {
     return { value: edu.school, preferStateMatching: false };
   }
-  if ((id.includes('degree') || id.includes('level of education') || id.includes('education level')) && edu.degree) {
+  if ((id.includes('degree') || id.includes('level of education') || id.includes('education level') || id.includes('academic level') || id.includes('highest level')) && edu.degree) {
     return { value: edu.degree, preferStateMatching: false };
   }
   if ((id.includes('field of study') || id.includes('major') || id.includes('area of study') || id.includes('concentration')) && edu.fieldOfStudy) {
@@ -661,7 +665,7 @@ function matchStateOption(options: HTMLOptionElement[], input: string): HTMLOpti
     }
   }
 
-  // Pass 2: option contains the candidate — prefer the shortest matching option
+  // Pass 2: option contains the candidate - prefer the shortest matching option
   let best: HTMLOptionElement | undefined;
   let bestLen = Infinity;
   for (const option of options) {
@@ -711,6 +715,42 @@ const NO_PATTERNS: RegExp[] = [
   /\bnone\b/i,
   /\bnot a\b/i,
 ];
+
+/**
+ * Match a numeric value against range-style option texts like "0-2", "2-4", "6+", "< 1", "> 10".
+ * Returns the option whose range contains the given number, or undefined.
+ */
+function matchNumericRange<T extends { text: string; item: unknown }>(
+  entries: T[],
+  numericValue: number
+): T | undefined {
+  for (const entry of entries) {
+    const text = entry.text.replace(/,/g, '').trim();
+    // "6+" or "6 +" or "6 or more"
+    const plusMatch = text.match(/^(\d+)\s*\+$/);
+    if (plusMatch && numericValue >= Number(plusMatch[1])) return entry;
+    const orMoreMatch = text.match(/^(\d+)\s+or\s+more$/i);
+    if (orMoreMatch && numericValue >= Number(orMoreMatch[1])) return entry;
+    // "< 1" or "less than 1"
+    const lessThanMatch = text.match(/^<\s*(\d+)$/);
+    if (lessThanMatch && numericValue < Number(lessThanMatch[1])) return entry;
+    const lessWordMatch = text.match(/^less\s+than\s+(\d+)$/i);
+    if (lessWordMatch && numericValue < Number(lessWordMatch[1])) return entry;
+    // "> 5" or "more than 5"
+    const greaterThanMatch = text.match(/^>\s*(\d+)$/);
+    if (greaterThanMatch && numericValue > Number(greaterThanMatch[1])) return entry;
+    const moreWordMatch = text.match(/^more\s+than\s+(\d+)$/i);
+    if (moreWordMatch && numericValue > Number(moreWordMatch[1])) return entry;
+    // "2-4" or "2 - 4" or "2 to 4"
+    const rangeMatch = text.match(/^(\d+)\s*[-–—]\s*(\d+)$/) || text.match(/^(\d+)\s+to\s+(\d+)$/i);
+    if (rangeMatch) {
+      const lo = Number(rangeMatch[1]);
+      const hi = Number(rangeMatch[2]);
+      if (numericValue >= lo && numericValue <= hi) return entry;
+    }
+  }
+  return undefined;
+}
 
 /**
  * For Yes/No profile values, score how well a dropdown option expresses the
@@ -793,7 +833,7 @@ function shouldSkipBecauseAlreadyFilled(element: FillableElement): boolean {
       return element.checked;
     }
     // Spinbutton inputs (Workday date parts) always have default values like "1" or "2001"
-    // — these are not user-entered, so never skip them.
+    // - these are not user-entered, so never skip them.
     if (element instanceof HTMLInputElement && element.getAttribute('role') === 'spinbutton') {
       return false;
     }
@@ -879,7 +919,7 @@ function addCandidate(
   if (!element) return;
   const html = element as HTMLElement;
   const isFileInput = element instanceof HTMLInputElement && element.type === 'file';
-  // Exempt file inputs from visibility — sites routinely hide them
+  // Exempt file inputs from visibility - sites routinely hide them
   if (!isFileInput && !isElementVisible(html)) return;
   if (seen.has(html)) return;
   seen.add(html);
@@ -939,7 +979,7 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
     return;
   }
 
-  // Try country synonyms — exact first, then startsWith (prefer shortest match)
+  // Try country synonyms - exact first, then startsWith (prefer shortest match)
   for (const group of COUNTRY_SYNONYMS) {
     if (group.includes(normalizedValue)) {
       // Pass 1: exact value/text match
@@ -953,7 +993,7 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
           return;
         }
       }
-      // Pass 2: startsWith — pick the SHORTEST matching option to avoid
+      // Pass 2: startsWith - pick the SHORTEST matching option to avoid
       // "United States Minor Outlying Islands" beating "United States"
       for (const synonym of group) {
         if (synonym.length < 2) continue;
@@ -1028,7 +1068,7 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
     return;
   }
 
-  // Bidirectional partial matching — option contains value OR value contains option
+  // Bidirectional partial matching - option contains value OR value contains option
   let bestPartial: HTMLOptionElement | undefined;
   let bestPartialOverlap = 0;
   for (const o of options) {
@@ -1058,7 +1098,20 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
     return;
   }
 
-  // Yes/No intent matching — for work auth, sponsorship, relocation dropdowns
+  // Example/parenthetical matching - e.g. "Social network (e.g. LinkedIn, Facebook)"
+  if (normalizedValue.length >= 3) {
+    for (const o of options) {
+      const optionText = normalizeForMatch(o.textContent || '');
+      if (optionText.includes('e g') || optionText.includes('such as') || optionText.includes('like ') || optionText.includes('including')) {
+        if (optionText.includes(normalizedValue)) {
+          select.value = o.value;
+          return;
+        }
+      }
+    }
+  }
+
+  // Yes/No intent matching - for work auth, sponsorship, relocation dropdowns
   // whose options use varied phrasing ("I am authorized to work...", etc.)
   if (isYesNoValue(value)) {
     const isYes = normalizedValue === 'yes';
@@ -1075,6 +1128,19 @@ function setSelectValue(select: HTMLSelectElement, value: string, preferStateMat
     }
     if (bestOption) {
       select.value = bestOption.value;
+      return;
+    }
+  }
+
+  // Numeric range matching - e.g. value "3" matches option "2-4"
+  const num = parseFloat(normalizedValue);
+  if (!isNaN(num)) {
+    const entries = options
+      .filter((o) => !isPlaceholderText(normalizeForMatch(o.textContent || '')))
+      .map((o) => ({ text: (o.textContent || '').trim(), item: o }));
+    const rangeMatch = matchNumericRange(entries, num);
+    if (rangeMatch) {
+      select.value = (rangeMatch.item as HTMLOptionElement).value;
       return;
     }
   }
@@ -1157,6 +1223,24 @@ function buildCandidates(value: string, preferStateMatching: boolean): string[] 
     }
   }
 
+  // Add degree synonyms so "Master's" matches "Master's Degree", "Masters", etc.
+  const DEGREE_SYNONYMS: string[][] = [
+    ['high school', 'high school diploma', 'highschool', 'hs diploma', 'secondary school', 'secondary education'],
+    ['associate s', 'associates', 'associate degree', 'associate s degree', 'associates degree'],
+    ['bachelor s', 'bachelors', 'bachelor degree', 'bachelor s degree', 'bachelors degree', 'undergraduate', 'ba', 'bs', 'b a', 'b s'],
+    ['master s', 'masters', 'master degree', 'master s degree', 'masters degree', 'graduate degree', 'ma', 'ms', 'mba', 'm a', 'm s'],
+    ['doctorate', 'doctorate phd', 'doctoral', 'phd', 'ph d', 'doctorate degree', 'doctoral degree'],
+  ];
+  if (normalized) {
+    for (const group of DEGREE_SYNONYMS) {
+      if (group.includes(normalized)) {
+        for (const synonym of group) {
+          candidates.add(synonym);
+        }
+      }
+    }
+  }
+
   // Add phone code synonyms (e.g. "+1" -> "us", "united states", "1")
   const rawValue = value.trim();
   const phoneSynonyms = PHONE_CODE_SYNONYMS[rawValue];
@@ -1181,7 +1265,7 @@ function findMatchingOption(options: HTMLElement[], candidates: string[]): HTMLE
     if (candidates.includes(text)) return option;
   }
 
-  // Pass 2: option text STARTS WITH the candidate — prefer the SHORTEST match
+  // Pass 2: option text STARTS WITH the candidate - prefer the SHORTEST match
   // to avoid "United States Minor Outlying Islands" beating "United States"
   let startsWithBest: HTMLElement | null = null;
   let startsWithLen = Infinity;
@@ -1197,7 +1281,7 @@ function findMatchingOption(options: HTMLElement[], candidates: string[]): HTMLE
   }
   if (startsWithBest) return startsWithBest;
 
-  // Pass 3: bidirectional containment — option contains candidate OR candidate contains option
+  // Pass 3: bidirectional containment - option contains candidate OR candidate contains option
   // Prefer the match with the most character overlap (avoids wrong picks)
   let bestContains: HTMLElement | null = null;
   let bestOverlap = 0;
@@ -1218,7 +1302,22 @@ function findMatchingOption(options: HTMLElement[], candidates: string[]): HTMLE
   }
   if (bestContains) return bestContains;
 
-  // Pass 4: Yes/No intent matching — for dropdowns with varied phrasing
+  // Pass 3b: Example/parenthetical matching - option lists examples like
+  // "Social network (e.g. LinkedIn, Facebook)" and candidate is "linkedin"
+  for (const option of options) {
+    const text = normalizeForMatch(getOptionText(option));
+    if (!text) continue;
+    // Check if option text contains example indicators
+    if (text.includes('e g') || text.includes('such as') || text.includes('like ') || text.includes('including')) {
+      for (const candidate of candidates) {
+        if (candidate.length >= 3 && text.includes(candidate)) {
+          return option;
+        }
+      }
+    }
+  }
+
+  // Pass 4: Yes/No intent matching - for dropdowns with varied phrasing
   // (e.g. "I am legally authorized to work in the United States")
   const firstCandidate = candidates[0] || '';
   if (isYesNoValue(firstCandidate)) {
@@ -1235,6 +1334,16 @@ function findMatchingOption(options: HTMLElement[], candidates: string[]): HTMLE
       }
     }
     if (bestOption) return bestOption;
+  }
+
+  // Pass 5: Numeric range matching - e.g. value "3" matches option "2-4"
+  const numVal = parseFloat(firstCandidate);
+  if (!isNaN(numVal)) {
+    const entries = options
+      .filter((o) => !isPlaceholderText(normalizeForMatch(getOptionText(o))))
+      .map((o) => ({ text: getOptionText(o), item: o }));
+    const rangeMatch = matchNumericRange(entries, numVal);
+    if (rangeMatch) return rangeMatch.item as HTMLElement;
   }
 
   return null;
@@ -1300,7 +1409,7 @@ function getClosestExperienceContainer(element: HTMLElement): HTMLElement | null
       return container;
     }
   }
-  // Don't fall back to the entire form — that's too broad and claims
+  // Don't fall back to the entire form - that's too broad and claims
   // questionnaire date fields as work experience dates.
   return null;
 }
@@ -1599,7 +1708,7 @@ async function confirmDropdownSelection(trigger: HTMLElement): Promise<void> {
   // Fire change so frameworks register the new value
   trigger.dispatchEvent(new Event('change', { bubbles: true }));
 
-  // Blur to finalize — some frameworks commit on focusout
+  // Blur to finalize - some frameworks commit on focusout
   commitFocusOut(trigger);
 }
 
@@ -1623,7 +1732,7 @@ async function typeAndMatch(
   syncReactValueTracker(element, previousValue);
   dispatchTextInputEvents(element, searchText);
 
-  // Wait for dropdown options to populate — some sites are slow (Workday, iCIMS)
+  // Wait for dropdown options to populate - some sites are slow (Workday, iCIMS)
   await delay(250);
 
   const listId = element.getAttribute('aria-controls');
@@ -1636,6 +1745,17 @@ async function typeAndMatch(
     await delay(200);
     options = findVisibleOptions(listRoot);
     match = findMatchingOption(options, candidates);
+  }
+
+  // If typing filtered the dropdown to a single non-placeholder option, select it
+  if (!match && searchText.length >= 3) {
+    const nonPlaceholder = options.filter((o) => {
+      const t = normalizeForMatch(getOptionText(o));
+      return t && !isPlaceholderText(t);
+    });
+    if (nonPlaceholder.length === 1) {
+      match = nonPlaceholder[0];
+    }
   }
 
   if (match) {
@@ -1669,7 +1789,7 @@ async function fillComboboxInput(
     if (found) return true;
   }
 
-  // No option matched — press Enter as a last resort (some sites accept typed text)
+  // No option matched - press Enter as a last resort (some sites accept typed text)
   element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   element.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
   return false;
@@ -1701,14 +1821,14 @@ async function fillDropdownTrigger(
     }
   }
 
-  // Retry after extra wait — some dropdowns load asynchronously
+  // Retry after extra wait - some dropdowns load asynchronously
   if (!match) {
     await delay(200);
     options = findVisibleOptions(listRoot);
     match = findMatchingOption(options, candidates);
   }
 
-  // Keyboard letter-jump fallback — for dropdowns without a search box,
+  // Keyboard letter-jump fallback - for dropdowns without a search box,
   // pressing a letter key jumps to the first option starting with that letter.
   if (!match && value.trim().length > 0) {
     const firstChar = value.trim()[0];
@@ -1726,8 +1846,8 @@ async function fillDropdownTrigger(
     return true;
   }
 
-  // No match found — close the dropdown without selecting anything.
-  // Don't blindly ArrowDown+Enter — that picks the wrong option.
+  // No match found - close the dropdown without selecting anything.
+  // Don't blindly ArrowDown+Enter - that picks the wrong option.
   element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
   commitFocusOut(element);
   return false;
@@ -1741,7 +1861,7 @@ async function fillDropdownTrigger(
 function selectRadioByValue(radio: HTMLInputElement, value: string): void {
   const name = radio.name;
   if (!name) {
-    // No group — just check/uncheck this single radio
+    // No group - just check/uncheck this single radio
     if (isTruthyValue(value) && !radio.checked) radio.click();
     return;
   }
@@ -1846,7 +1966,7 @@ async function setFieldValue(element: FillableElement, value: string, preferStat
     }
 
     // Spinbutton inputs (Workday date parts) need keyboard-based digit typing.
-    // Setting .value programmatically doesn't work — React ignores it.
+    // Setting .value programmatically doesn't work - React ignores it.
     if (element instanceof HTMLInputElement && element.getAttribute('role') === 'spinbutton') {
       const adapted = adaptValueForInputType(element, value);
       await typeIntoSpinbutton(element, adapted);
@@ -1932,7 +2052,7 @@ async function injectResumeFile(input: HTMLInputElement, file: File): Promise<bo
     dt.items.add(file);
     input.files = dt.files;
 
-    // Only dispatch 'change' — that's what browsers fire when a file is picked.
+    // Only dispatch 'change' - that's what browsers fire when a file is picked.
     // Dispatching 'input' too causes double-upload on sites that listen to both.
     input.dispatchEvent(new Event('change', { bubbles: true }));
     await delay(80);
@@ -1971,13 +2091,13 @@ function didFileRegister(input: HTMLInputElement): boolean {
  * Sites wrap file inputs in styled containers that listen for drop events.
  */
 function findNearestDropZone(fileInput: HTMLElement): HTMLElement | null {
-  // Walk up from the file input looking for the first visible parent —
+  // Walk up from the file input looking for the first visible parent  -
   // that's almost always the drop-zone wrapper that has the event listeners.
   let el: HTMLElement | null = fileInput.parentElement;
   let depth = 0;
   while (el && depth < 8) {
     if (isElementVisible(el)) {
-      // Return the first visible ancestor — it wraps the hidden input
+      // Return the first visible ancestor - it wraps the hidden input
       // and is the element the site attaches drop listeners to.
       return el;
     }
@@ -1989,7 +2109,7 @@ function findNearestDropZone(fileInput: HTMLElement): HTMLElement | null {
 
 /**
  * Create a DragEvent with a working dataTransfer property.
- * Chrome ignores the `dataTransfer` option in the DragEvent constructor —
+ * Chrome ignores the `dataTransfer` option in the DragEvent constructor  -
  * the resulting event always has `event.dataTransfer === null`.
  * We work around this by defining the property after construction.
  */
@@ -2000,7 +2120,7 @@ function createDragEventWithData(type: string, dt: DataTransfer): DragEvent {
 }
 
 /**
- * Simulate a file drop on an element — triggers the full drag-and-drop sequence.
+ * Simulate a file drop on an element - triggers the full drag-and-drop sequence.
  */
 async function simulateFileDrop(target: HTMLElement, file: File): Promise<void> {
   const dt = new DataTransfer();
@@ -2044,7 +2164,7 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
     const isFileInput = input instanceof HTMLInputElement && input.type === 'file';
     const tag = html.tagName + (html instanceof HTMLInputElement ? `[${html.type}]` : '');
 
-    // Exempt file inputs from visibility checks — most sites hide them with
+    // Exempt file inputs from visibility checks - most sites hide them with
     // display:none and trigger them via a styled button / drag-drop area.
     if (!isFileInput && !isElementVisible(html)) { continue; }
     if (html.hasAttribute('disabled')) { continue; }
@@ -2053,7 +2173,7 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
       continue;
     }
 
-    // Don't skip file inputs that already have files — we only fill empty ones
+    // Don't skip file inputs that already have files - we only fill empty ones
     if (isFileInput) {
       if ((input as HTMLInputElement).files && (input as HTMLInputElement).files!.length > 0) continue;
     } else if (shouldSkipBecauseAlreadyFilled(input)) {
@@ -2063,7 +2183,7 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
       continue;
     }
 
-    // Deduplicate radio buttons — only process each named group once
+    // Deduplicate radio buttons - only process each named group once
     if (input instanceof HTMLInputElement && input.type === 'radio' && input.name) {
       if (processedRadioGroups.has(input.name)) continue;
       processedRadioGroups.add(input.name);
@@ -2074,7 +2194,7 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
     let value = '';
     let preferStateMatching = false;
 
-    // Skip work experience date resolvers for spinbutton inputs —
+    // Skip work experience date resolvers for spinbutton inputs  -
     // they're typically questionnaire date fields (desired start date, etc.),
     // not work experience dates. Let matchField handle them.
     const isSpinbutton = input instanceof HTMLInputElement && input.getAttribute('role') === 'spinbutton';
@@ -2101,6 +2221,17 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
       }
     }
 
+    // Check fallback values FIRST - these are specific question patterns (e.g. Deloitte
+    // auditor question, "how did you hear") that must take priority over generic keyword
+    // matching to avoid false positives like "company" matching in unrelated questions.
+    if (!value) {
+      const fallback = matchFallbackValue(identifiers);
+      if (fallback) {
+        value = fallback.value;
+        preferStateMatching = Boolean(fallback.preferStateMatching);
+      }
+    }
+
     if (!value) {
       const profileKey = matchField(identifiers);
 
@@ -2118,12 +2249,12 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
            isDropdownTriggerElement(input);
 
         if (isSelectOrCombobox) {
-          // This is a country code selector — fill with phoneCountryCode instead
+          // This is a country code selector - fill with phoneCountryCode instead
           const code = (profile.phoneCountryCode || '').trim();
           if (code) {
             matched.push({ el: input, value: code, preferStateMatching: false });
           }
-          // Don't count this as having filled the phone number — skip either way
+          // Don't count this as having filled the phone number - skip either way
           continue;
         }
         if (hasFilledPhone) {
@@ -2139,14 +2270,6 @@ export async function detectAndFill(profile: UserProfile): Promise<number> {
         if (profileKey === 'desiredStartDate' && value === 'auto') {
           value = computeAutoStartDate();
         }
-      }
-    }
-
-    if (!value) {
-      const fallback = matchFallbackValue(identifiers);
-      if (fallback) {
-        value = fallback.value;
-        preferStateMatching = Boolean(fallback.preferStateMatching);
       }
     }
 

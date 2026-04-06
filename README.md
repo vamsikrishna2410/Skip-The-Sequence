@@ -39,18 +39,18 @@ Cover Letter Generation	(Optional) Generate tailored cover letters using AI
 ```
 
 Project Phases
-Phase 1 — Foundation (MVP)
+Phase 1 - Foundation (MVP)
 Set up Chrome extension boilerplate (Manifest V3)
-Build Profile Editor UI (popup) — name, email, phone, address, work history, education, skills
+Build Profile Editor UI (popup) - name, email, phone, address, work history, education, skills
 Store/retrieve profile data via Chrome Storage API
 Build content script that detects common form fields
 Implement auto-fill for one job board (start with LinkedIn Easy Apply or Greenhouse)
-Phase 2 — Multi-Site Support
+Phase 2 - Multi-Site Support
 Add form detection for Indeed, Lever, Workday, Ashby, iCIMS
 Build a site-adapter pattern (each job board gets a "adapter" module)
 Handle dropdowns, radio buttons, checkboxes, date pickers
 Auto-attach resume PDF
-Phase 3 — Smart Matching
+Phase 3 - Smart Matching
 Fuzzy field matching (handle labels like "First Name", "fname", "given name")
 Screening question database (common Q&A: work authorization, years of exp, etc.)
 Let users save custom Q&A pairs

@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vamsikrishna2410/Stop-The-Sequence-.git"
+    "url": "git+https://github.com/vamsikrishna2410/Skip-The-Sequence.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/vamsikrishna2410/Stop-The-Sequence-/issues"
+    "url": "https://github.com/vamsikrishna2410/Skip-The-Sequence/issues"
   },
-  "homepage": "https://github.com/vamsikrishna2410/Stop-The-Sequence-#readme",
+  "homepage": "https://github.com/vamsikrishna2410/Skip-The-Sequence#readme",
   "devDependencies": {
     "@types/chrome": "^0.1.37",
     "copy-webpack-plugin": "^14.0.0",
